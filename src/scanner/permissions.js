@@ -3,47 +3,86 @@
  */
 export class PermissionScanner {
   constructor() {
-    // Define tool risk levels
+    // Bash-specific risk patterns (checked in order, first match wins)
+    // Note: These are CAPABILITY warnings only. Actual malicious commands
+    // are detected by DangerousCommandScanner with higher severity.
+    this.bashRiskPatterns = [
+      // HIGH - Unrestricted (capability warning)
+      { pattern: /^Bash\(\*\)$/i, risk: 'high', desc: 'Unrestricted shell access (capability)' },
+
+      // MEDIUM - Potentially dangerous operations (capability warning)
+      { pattern: /^Bash\(rm[\s:]/i, risk: 'medium', desc: 'Delete operations (capability)' },
+      { pattern: /^Bash\(sudo[\s:]/i, risk: 'medium', desc: 'Sudo operations (capability)' },
+      { pattern: /^Bash\(chmod[\s:]/i, risk: 'medium', desc: 'Permission changes (capability)' },
+      { pattern: /^Bash\(chown[\s:]/i, risk: 'medium', desc: 'Ownership changes (capability)' },
+      { pattern: /^Bash\(curl[\s:]/i, risk: 'medium', desc: 'Network requests (capability)' },
+      { pattern: /^Bash\(wget[\s:]/i, risk: 'medium', desc: 'Network requests (capability)' },
+      { pattern: /^Bash\(nc[\s:]/i, risk: 'medium', desc: 'Netcat operations (capability)' },
+      { pattern: /^Bash\(ssh[\s:]/i, risk: 'medium', desc: 'SSH operations (capability)' },
+      { pattern: /^Bash\(scp[\s:]/i, risk: 'medium', desc: 'SCP operations (capability)' },
+
+      // LOW - Common dev tools with wildcards
+      { pattern: /^Bash\(git:\*\)$/i, risk: 'low', desc: 'Git operations (all)' },
+      { pattern: /^Bash\(npm:\*\)$/i, risk: 'low', desc: 'NPM operations (all)' },
+      { pattern: /^Bash\(pnpm:\*\)$/i, risk: 'low', desc: 'PNPM operations (all)' },
+      { pattern: /^Bash\(yarn:\*\)$/i, risk: 'low', desc: 'Yarn operations (all)' },
+      { pattern: /^Bash\(pip:\*\)$/i, risk: 'low', desc: 'PIP operations (all)' },
+      { pattern: /^Bash\(gh:\*\)$/i, risk: 'low', desc: 'GitHub CLI (all)' },
+      { pattern: /^Bash\(docker:\*\)$/i, risk: 'low', desc: 'Docker operations (all)' },
+      { pattern: /^Bash\(make:\*\)$/i, risk: 'low', desc: 'Make operations (all)' },
+
+      // INFO - Specific safe commands (just informational)
+      { pattern: /^Bash\(git\s+status\)/i, risk: 'info', desc: 'Git status (read-only)' },
+      { pattern: /^Bash\(git\s+log\)/i, risk: 'info', desc: 'Git log (read-only)' },
+      { pattern: /^Bash\(git\s+diff\)/i, risk: 'info', desc: 'Git diff (read-only)' },
+      { pattern: /^Bash\(git\s+branch\)/i, risk: 'info', desc: 'Git branch (read-only)' },
+      { pattern: /^Bash\(npm\s+test\)/i, risk: 'info', desc: 'NPM test' },
+      { pattern: /^Bash\(npm\s+run\)/i, risk: 'info', desc: 'NPM run script' },
+      { pattern: /^Bash\(ls[\s\)]/i, risk: 'info', desc: 'List directory' },
+      { pattern: /^Bash\(pwd\)/i, risk: 'info', desc: 'Print working directory' },
+      { pattern: /^Bash\(echo[\s\)]/i, risk: 'info', desc: 'Echo command' },
+      { pattern: /^Bash\(cat[\s\)]/i, risk: 'info', desc: 'Cat file (read)' },
+
+      // LOW - Other Bash with specific scope (has parentheses but not matched above)
+      { pattern: /^Bash\([^)]+\)$/i, risk: 'low', desc: 'Bash with specific scope' },
+
+      // MEDIUM - Bare "Bash" without scope (unspecified)
+      { pattern: /^Bash$/i, risk: 'medium', desc: 'Unscoped Bash access (capability)' },
+    ];
+
+    // Define tool risk levels (non-Bash tools)
+    // Note: These are CAPABILITY warnings only - lower severity than actual malicious content
     this.toolRiskLevels = {
-      // Critical risk tools - can execute arbitrary code
-      critical: [
-        'Bash(*)',           // Unrestricted bash access
-        'Bash',              // General bash (depends on context)
-        'Execute',
-        'Shell',
-        'Terminal'
+      // Critical - reserved for actual malicious content (not capabilities)
+      critical: [],
+
+      // High risk capabilities - unrestricted execution
+      high: [
+        'Execute',           // Arbitrary code execution
+        'Shell',             // Shell access
+        'Terminal'           // Terminal access
       ],
 
-      // High risk tools - can access sensitive data or make changes
-      high: [
+      // Medium risk capabilities - can make changes
+      medium: [
         'Write',             // Can write to any file
         'Edit',              // Can modify any file
-        'Delete',
-        'Bash(rm:*)',        // Delete operations
-        'Bash(chmod:*)',     // Permission changes
-        'Bash(chown:*)',     // Ownership changes
-        'Bash(sudo:*)',      // Sudo operations
-        'Bash(curl:*)',      // Network requests
-        'Bash(wget:*)',      // Download operations
+        'Delete',            // Can delete files
         'WebFetch',          // External web requests
         'mcp_*'              // MCP tools (depends on implementation)
       ],
 
-      // Medium risk tools - limited but notable access
-      medium: [
+      // Low risk capabilities - read/discover
+      low: [
         'Read',              // Can read files
         'Glob',              // Can discover files
         'Grep',              // Can search file contents
-        'Bash(git:*)',       // Git operations
-        'Bash(npm:*)',       // NPM operations
-        'Bash(pip:*)',       // PIP operations
-        'Bash(gh:*)',        // GitHub CLI
         'Task',              // Can spawn sub-agents
         'TodoWrite'          // Task management
       ],
 
-      // Low risk tools
-      low: [
+      // Info - safe tools
+      info: [
         'Read(*)',           // Read with specific patterns
         'Glob(*)',           // Limited glob patterns
         'AskUser',
@@ -51,49 +90,49 @@ export class PermissionScanner {
       ]
     };
 
-    // Dangerous tool combinations
+    // Dangerous tool combinations (capability warnings - not actual threats)
     this.dangerousCombinations = [
       {
         tools: ['Bash', 'Write'],
-        risk: 'high',
-        reason: 'Can execute commands and persist malicious files'
+        risk: 'medium',
+        reason: 'Can execute commands and persist files (capability)'
       },
       {
         tools: ['Read', 'WebFetch'],
-        risk: 'high',
-        reason: 'Can read sensitive data and exfiltrate via network'
+        risk: 'medium',
+        reason: 'Can read data and send via network (capability)'
       },
       {
         tools: ['Bash(curl:*)', 'Bash'],
-        risk: 'critical',
-        reason: 'Can download and execute remote code'
+        risk: 'high',
+        reason: 'Can download and execute remote code (capability)'
       },
       {
         tools: ['Glob', 'Read', 'Bash(curl:*)'],
-        risk: 'high',
-        reason: 'Can discover, read, and exfiltrate files'
+        risk: 'medium',
+        reason: 'Can discover, read, and send files (capability)'
       }
     ];
 
-    // Overly permissive patterns
+    // Overly permissive patterns (capability warnings)
     this.overlyPermissivePatterns = [
       {
         pattern: /Bash\(\*\)/i,
-        risk: 'critical',
-        title: 'Unrestricted Bash access',
-        description: 'Skill has unrestricted shell access - can execute any command'
+        risk: 'high',
+        title: 'Unrestricted Bash access (capability)',
+        description: 'Skill declares unrestricted shell access'
       },
       {
         pattern: /Bash\([^)]*\*[^)]*\)/i,
-        risk: 'high',
-        title: 'Wildcard Bash permissions',
-        description: 'Bash permissions use wildcards - overly broad access'
+        risk: 'medium',
+        title: 'Wildcard Bash permissions (capability)',
+        description: 'Bash permissions use wildcards'
       },
       {
         pattern: /\*/g,
-        risk: 'medium',
+        risk: 'low',
         title: 'Wildcard in tool permissions',
-        description: 'Wildcards in permissions may grant broader access than necessary'
+        description: 'Wildcards in permissions may grant broader access'
       }
     ];
   }
@@ -201,7 +240,30 @@ export class PermissionScanner {
   analyzeToolRisk(tool, findings) {
     const normalizedTool = tool.trim();
 
-    // Check each risk level
+    // Special handling for Bash tools - use pattern matching
+    if (normalizedTool.toLowerCase().startsWith('bash')) {
+      for (const { pattern, risk, desc } of this.bashRiskPatterns) {
+        if (pattern.test(normalizedTool)) {
+          findings[risk].push({
+            title: `${risk.toUpperCase()} risk tool: ${normalizedTool}`,
+            description: desc,
+            location: 'allowed-tools',
+            scanner: 'PermissionScanner'
+          });
+          return; // First match wins
+        }
+      }
+      // No pattern matched - treat as medium (unknown Bash variant)
+      findings.medium.push({
+        title: `MEDIUM risk tool: ${normalizedTool}`,
+        description: 'Bash tool with unknown scope',
+        location: 'allowed-tools',
+        scanner: 'PermissionScanner'
+      });
+      return;
+    }
+
+    // Non-Bash tools - check each risk level
     for (const [riskLevel, tools] of Object.entries(this.toolRiskLevels)) {
       for (const riskTool of tools) {
         if (this.toolMatches(normalizedTool, riskTool)) {
@@ -219,8 +281,10 @@ export class PermissionScanner {
             findings.high.push(finding);
           } else if (riskLevel === 'medium') {
             findings.medium.push(finding);
-          } else {
+          } else if (riskLevel === 'low') {
             findings.low.push(finding);
+          } else {
+            findings.info.push(finding);
           }
           return; // Found the risk level, stop checking
         }
