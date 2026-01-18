@@ -3,10 +3,25 @@ import { PermissionScanner } from './permissions.js';
 import { ExternalConnectionScanner } from './external-connections.js';
 import { PatternScanner } from './patterns.js';
 import { DataExfiltrationScanner } from './data-exfiltration.js';
+import { MCPSecurityScanner } from './mcp-security.js';
+import { SSRFScanner } from './ssrf-scanner.js';
+import { DependencyScanner } from './dependency-scanner.js';
+import { SubAgentScanner } from './subagent-scanner.js';
 
 /**
  * SecurityScanner - Main scanner that orchestrates all security checks
  * 整合型防毒掃描引擎，偵測 Skills 中的惡意行為
+ *
+ * 9 大掃描引擎：
+ * 1. DangerousCommandScanner - 危險指令偵測
+ * 2. PermissionScanner - 權限範圍檢查
+ * 3. ExternalConnectionScanner - 外部連線分析
+ * 4. PatternScanner - 惡意模式匹配
+ * 5. DataExfiltrationScanner - 資料外洩偵測
+ * 6. MCPSecurityScanner - MCP Server 安全檢查
+ * 7. SSRFScanner - SSRF/雲端攻擊偵測
+ * 8. DependencyScanner - 依賴安全檢查
+ * 9. SubAgentScanner - Sub-agent 攻擊偵測
  */
 export class SecurityScanner {
   constructor(verbose = false) {
@@ -16,7 +31,11 @@ export class SecurityScanner {
       new PermissionScanner(),             // 權限範圍檢查
       new ExternalConnectionScanner(),     // 外部連線分析
       new PatternScanner(),                // 惡意模式匹配
-      new DataExfiltrationScanner()        // 資料外洩偵測 (新增!)
+      new DataExfiltrationScanner(),       // 資料外洩偵測
+      new MCPSecurityScanner(),            // MCP Server 安全檢查
+      new SSRFScanner(),                   // SSRF/雲端攻擊偵測
+      new DependencyScanner(),             // 依賴安全檢查
+      new SubAgentScanner()                // Sub-agent 攻擊偵測
     ];
   }
 

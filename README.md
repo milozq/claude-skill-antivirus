@@ -1,4 +1,4 @@
-# Skill Installer + Antivirus 🔧🛡️
+# Claude Skill Antivirus 🔧🛡️
 
 一個安全的 Claude Skills 安裝器，內建完整的惡意行為偵測引擎。
 
@@ -6,10 +6,11 @@
 
 ## 功能特色
 
-- **🛡️ 五大掃描引擎**: 全方位偵測惡意 Skills
+- **🛡️ 九大掃描引擎**: 全方位偵測惡意 Skills
 - **⚠️ 風險評估**: 將發現分類為 Critical、High、Medium、Low、Info
 - **📊 視覺化報告**: 彩色安全報告與分數
 - **🚫 自動阻擋**: 預設阻擋 CRITICAL 風險的 Skills
+- **🌐 支援多來源**: SkillsMP、GitHub、本機檔案
 
 ## 掃描引擎
 
@@ -48,7 +49,7 @@
 - 混淆程式碼 (base64、hex 編碼)
 - 社交工程語言
 
-### 5. 🆕 資料外洩偵測 (DataExfiltrationScanner)
+### 5. 資料外洩偵測 (DataExfiltrationScanner)
 **專門偵測讀取本機資料並傳送到外部的惡意行為**：
 
 | 類別 | 偵測項目 |
@@ -60,12 +61,54 @@
 | 系統偵察 | `whoami`、`hostname`、網路設定外洩 |
 | 持久化機制 | 修改 `.bashrc`、cron 定時外洩 |
 
+### 6. 🆕 MCP Server 安全檢查 (MCPSecurityScanner)
+**偵測 MCP Server 設定中的安全風險**：
+
+| 類別 | 偵測項目 |
+|------|----------|
+| 不受信任來源 | 非官方 MCP server、從 URL 直接執行 |
+| 危險權限 | Filesystem 無限制存取、Shell 執行、資料庫存取 |
+| 敏感設定 | 環境變數含憑證、設定檔暴露 |
+| 危險組合 | Filesystem + Fetch、Shell + 網路 |
+
+### 7. 🆕 SSRF/雲端攻擊偵測 (SSRFScanner)
+**偵測 Server-Side Request Forgery 和雲端攻擊**：
+
+| 類別 | 偵測項目 |
+|------|----------|
+| 雲端 Metadata | AWS/GCP/Azure 169.254.169.254、IAM 憑證竊取 |
+| 內部網路 | 10.x.x.x、192.168.x.x、172.16-31.x.x 探測 |
+| SSRF 繞過 | Hex IP、URL 編碼、file://、gopher:// |
+| Kubernetes | API 存取、secrets 竊取、serviceaccount |
+| Docker | docker.sock 存取、特權容器、容器逃逸 |
+
+### 8. 🆕 依賴安全檢查 (DependencyScanner)
+**偵測惡意或有漏洞的依賴套件**：
+
+| 類別 | 偵測項目 |
+|------|----------|
+| 已知惡意套件 | event-stream、ua-parser-js、colors、faker |
+| Typosquatting | crossenv、lodash-、mongose、reqeusts |
+| 可疑安裝 | 從 URL 安裝、不安全 registry、HTTP index |
+| postinstall 風險 | install 腳本含 curl、wget、eval |
+
+### 9. 🆕 Sub-agent 攻擊偵測 (SubAgentScanner)
+**偵測 Task 工具和 Sub-agent 的濫用**：
+
+| 類別 | 偵測項目 |
+|------|----------|
+| 權限升級 | Task 派生 Bash agent、要求所有權限 |
+| Prompt Injection | Sub-agent prompt 含惡意指令 |
+| Agent 鏈攻擊 | 嵌套 Task 呼叫、遞迴 agent |
+| DoS 攻擊 | 迴圈呼叫 Task、無限遞迴 |
+| 資料竊取 | Read + WebFetch 組合、存取敏感資料 |
+
 ## 安裝
 
 ```bash
-cd skill-installer
+cd claude-skill-antivirus
 npm install
-npm link  # 全域安裝 'skill-install' 指令
+npm link  # 全域安裝 'skill-install' 和 'claude-skill-av' 指令
 ```
 
 ## 使用方式
@@ -81,6 +124,9 @@ skill-install ./path/to/SKILL.md
 
 # 從目錄安裝
 skill-install ./path/to/skill-directory/
+
+# 從 GitHub 安裝
+skill-install https://github.com/user/repo/blob/main/skills/SKILL.md
 ```
 
 ### 選項
@@ -111,6 +157,9 @@ skill-install ./my-skill -o ~/.claude/skills
 
 # 強制安裝 (跳過提示)
 skill-install ./my-skill -f
+
+# 掃描 SkillsMP 上的 skill
+skill-install https://skillsmp.com/skills/example-skill --scan-only
 ```
 
 ## 風險等級
@@ -140,21 +189,21 @@ Risk Level: CRITICAL
 Score: 0/100 ░░░░░░░░░░
 
 Findings Summary:
-  Critical: 19
-  High: 22
-  Medium: 6
-  Low: 11
-  Info: 3
+  Critical: 35
+  High: 28
+  Medium: 12
+  Low: 8
+  Info: 5
 
 🚨 CRITICAL ISSUES:
-  • [資料收集] 讀取敏感設定目錄
-    嘗試存取 SSH、GPG、AWS、Kubernetes 或 Docker 設定
-  • [資料外洩] curl 上傳檔案內容
-    使用 curl 上傳本機檔案到外部伺服器
-  • [組合攻擊] 打包並外洩
-    將多個檔案打包後直接傳送
-  • [行為分析] 完整外洩工具鏈
-    Skill 包含讀取、編碼、傳送的完整資料外洩工具鏈
+  • [雲端 Metadata] AWS/GCP Metadata Endpoint
+    嘗試存取雲端 metadata endpoint，可竊取 IAM 憑證
+  • [MCP] MCP 從 URL 直接執行
+    直接從 URL 執行 npx，極度危險
+  • [依賴] 已知惡意套件
+    偵測到已知問題套件: event-stream
+  • [Sub-agent] Task Prompt Injection
+    Sub-agent prompt 包含 prompt injection 嘗試
   ...
 
 ═══════════════════════════════════════════════════════
@@ -171,32 +220,50 @@ npm test
 # 測試安全範例
 node src/index.js ./examples/safe-skill --scan-only
 
-# 測試惡意範例
+# 測試惡意範例（所有 9 個引擎）
 node src/index.js ./examples/malicious-skill --scan-only -v
 ```
 
 ## 專案結構
 
 ```
-skill-installer/
+claude-skill-antivirus/
 ├── src/
-│   ├── index.js                 # CLI 入口
+│   ├── index.js                   # CLI 入口
 │   ├── scanner/
-│   │   ├── index.js             # 主掃描器
-│   │   ├── dangerous-commands.js # 危險指令偵測
-│   │   ├── permissions.js       # 權限檢查
+│   │   ├── index.js               # 主掃描器（整合 9 個引擎）
+│   │   ├── dangerous-commands.js  # 危險指令偵測
+│   │   ├── permissions.js         # 權限檢查
 │   │   ├── external-connections.js # 外部連線分析
-│   │   ├── patterns.js          # 模式匹配
-│   │   └── data-exfiltration.js # 資料外洩偵測
+│   │   ├── patterns.js            # 模式匹配
+│   │   ├── data-exfiltration.js   # 資料外洩偵測
+│   │   ├── mcp-security.js        # MCP Server 安全檢查 (NEW!)
+│   │   ├── ssrf-scanner.js        # SSRF/雲端攻擊偵測 (NEW!)
+│   │   ├── dependency-scanner.js  # 依賴安全檢查 (NEW!)
+│   │   └── subagent-scanner.js    # Sub-agent 攻擊偵測 (NEW!)
 │   └── utils/
-│       ├── downloader.js        # Skill 下載器
-│       └── installer.js         # Skill 安裝器
+│       ├── downloader.js          # Skill 下載器
+│       └── installer.js           # Skill 安裝器
 ├── examples/
-│   ├── safe-skill/              # 安全範例
-│   └── malicious-skill/         # 惡意範例
+│   ├── safe-skill/                # 安全範例
+│   └── malicious-skill/           # 惡意範例（測試所有引擎）
 ├── package.json
 └── README.md
 ```
+
+## 掃描引擎對照表
+
+| # | 引擎 | 偵測重點 |
+|---|------|----------|
+| 1 | DangerousCommandScanner | rm -rf、curl\|bash、fork bomb |
+| 2 | PermissionScanner | allowed-tools 分析 |
+| 3 | ExternalConnectionScanner | 可疑 URL、webhook |
+| 4 | PatternScanner | Prompt injection、API keys |
+| 5 | DataExfiltrationScanner | 資料外洩工具鏈 |
+| 6 | MCPSecurityScanner | MCP server 設定安全 |
+| 7 | SSRFScanner | 雲端 metadata、內部網路 |
+| 8 | DependencyScanner | 惡意套件、typosquatting |
+| 9 | SubAgentScanner | Task 濫用、agent 鏈攻擊 |
 
 ## License
 
