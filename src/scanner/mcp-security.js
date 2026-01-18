@@ -1,107 +1,107 @@
 /**
  * MCPSecurityScanner - Detects dangerous MCP server configurations
- * 偵測 MCP Server 設定中的安全風險
+ * Specifically targets MCP Server settings that may pose security risks
  */
 export class MCPSecurityScanner {
   constructor() {
-    // 危險的 MCP Server 來源
+    // Untrusted MCP Server sources
     this.untrustedSources = [
       {
         pattern: /npx\s+[^@\s]*[^/\s](?!@modelcontextprotocol|@anthropic)/gi,
         risk: 'medium',
-        title: '非官方 MCP Server',
-        description: '使用非 Anthropic 官方的 MCP server，請確認來源可信'
+        title: 'Non-official MCP Server',
+        description: 'Using non-Anthropic official MCP server, verify the source is trusted'
       },
       {
         pattern: /npx\s+-y\s+https?:\/\//gi,
         risk: 'critical',
-        title: '從 URL 直接執行 MCP',
-        description: '直接從 URL 執行 npx，極度危險'
+        title: 'Direct URL execution for MCP',
+        description: 'Executing npx directly from URL, extremely dangerous'
       },
       {
         pattern: /mcp.*github\.com\/[^/]+\/[^/]+(?!anthropic|modelcontextprotocol)/gi,
         risk: 'medium',
-        title: '第三方 GitHub MCP Server',
-        description: '使用第三方 GitHub 上的 MCP server'
+        title: 'Third-party GitHub MCP Server',
+        description: 'Using MCP server from third-party GitHub repository'
       }
     ];
 
-    // 危險的 MCP 工具權限
+    // Dangerous MCP tool permissions
     this.dangerousMCPTools = [
       {
         pattern: /mcp[_-]?filesystem.*allowed.*['"]\*['"]/gi,
         risk: 'critical',
-        title: 'MCP Filesystem 無限制存取',
-        description: 'MCP filesystem server 允許存取所有路徑'
+        title: 'MCP Filesystem unrestricted access',
+        description: 'MCP filesystem server allows access to all paths'
       },
       {
         pattern: /mcp[_-]?filesystem[^}]*allowedDirectories[^}]*['"](\/|~)['"]/gi,
         risk: 'critical',
-        title: 'MCP 存取根目錄或家目錄',
-        description: 'MCP server 被授權存取根目錄或整個家目錄'
+        title: 'MCP access to root or home directory',
+        description: 'MCP server authorized to access root directory or entire home directory'
       },
       {
         pattern: /mcp[_-]?(shell|bash|terminal|exec)/gi,
         risk: 'critical',
-        title: 'MCP Shell 執行權限',
-        description: '偵測到可執行 shell 命令的 MCP server'
+        title: 'MCP Shell execution permission',
+        description: 'Detected MCP server capable of executing shell commands'
       },
       {
         pattern: /mcp[_-]?(postgres|mysql|mongodb|redis|database)/gi,
         risk: 'high',
-        title: 'MCP 資料庫存取',
-        description: 'MCP server 可存取資料庫，確認權限範圍'
+        title: 'MCP Database access',
+        description: 'MCP server can access database, verify permission scope'
       },
       {
         pattern: /mcp[_-]?(aws|gcp|azure|cloud)/gi,
         risk: 'high',
-        title: 'MCP 雲端服務存取',
-        description: 'MCP server 可存取雲端服務'
+        title: 'MCP Cloud service access',
+        description: 'MCP server can access cloud services'
       },
       {
         pattern: /mcp[_-]?puppeteer|mcp[_-]?playwright|mcp[_-]?browser/gi,
         risk: 'medium',
-        title: 'MCP 瀏覽器自動化',
-        description: 'MCP server 可控制瀏覽器'
+        title: 'MCP Browser automation',
+        description: 'MCP server can control browser'
       }
     ];
 
-    // MCP 設定中的敏感環境變數
+    // Sensitive environment variables in MCP config
     this.sensitiveEnvPatterns = [
       {
         pattern: /-e\s+[A-Z_]*(?:PASSWORD|SECRET|TOKEN|KEY|CREDENTIAL)[=\s]/gi,
         risk: 'high',
-        title: 'MCP 環境變數含敏感資訊',
-        description: '在 MCP 設定中傳遞敏感環境變數'
+        title: 'MCP environment variable contains sensitive info',
+        description: 'Passing sensitive environment variables in MCP configuration'
       },
       {
         pattern: /env['":\s]+\{[^}]*(?:PASSWORD|SECRET|API_KEY|TOKEN)/gi,
         risk: 'high',
-        title: 'MCP 設定包含憑證',
-        description: 'MCP 設定檔中包含敏感憑證'
+        title: 'MCP config contains credentials',
+        description: 'MCP configuration file contains sensitive credentials'
       }
     ];
 
-    // MCP 設定格式偵測
+    // MCP configuration format detection
     this.mcpConfigPatterns = [
       {
         pattern: /["']?mcpServers["']?\s*:/gi,
         isConfig: true,
-        title: 'MCP 設定區塊'
+        title: 'MCP configuration block'
       },
       {
         pattern: /claude\s+mcp\s+add/gi,
         isConfig: true,
-        title: 'MCP CLI 設定指令'
+        title: 'MCP CLI configuration command'
       },
       {
         pattern: /\.mcp\.json|mcp-config|settings\.json.*mcp/gi,
         isConfig: true,
-        title: 'MCP 設定檔'
+        title: 'MCP configuration file'
       }
     ];
 
-    // 已知安全的官方 MCP Servers
+    // Known safe official MCP Servers
     this.trustedMCPServers = [
       '@modelcontextprotocol/server-memory',
       '@modelcontextprotocol/server-filesystem',
@@ -117,19 +117,19 @@ export class MCPSecurityScanner {
       '@anthropic/mcp-server',
     ];
 
-    // 危險的 MCP 行為組合
+    // Dangerous MCP behavior combinations
     this.dangerousCombinations = [
       {
         patterns: [/mcp[_-]?filesystem/gi, /mcp[_-]?fetch|mcp[_-]?http/gi],
         risk: 'critical',
-        title: 'MCP 檔案+網路組合',
-        description: '同時擁有檔案存取和網路請求能力，可能用於資料外洩'
+        title: 'MCP Filesystem + Network combination',
+        description: 'Has both file access and network request capabilities, may be used for data exfiltration'
       },
       {
         patterns: [/mcp[_-]?shell|mcp[_-]?bash/gi, /mcp[_-]?fetch/gi],
         risk: 'critical',
-        title: 'MCP Shell+網路組合',
-        description: 'Shell 執行加網路存取，可下載執行惡意程式'
+        title: 'MCP Shell + Network combination',
+        description: 'Shell execution plus network access, can download and execute malicious programs'
       }
     ];
   }
@@ -145,21 +145,21 @@ export class MCPSecurityScanner {
 
     const content = this.getAllContent(skillContent);
 
-    // 檢查是否包含 MCP 設定
+    // Check if contains MCP configuration
     const hasMCPConfig = this.mcpConfigPatterns.some(p => p.pattern.test(content));
 
     if (!hasMCPConfig) {
-      // 沒有 MCP 設定，跳過掃描
+      // No MCP configuration, skip scan
       return findings;
     }
 
     findings.info.push({
-      title: '偵測到 MCP 設定',
-      description: 'Skill 包含 MCP Server 設定，進行安全檢查',
+      title: 'MCP configuration detected',
+      description: 'Skill contains MCP Server configuration, performing security check',
       scanner: 'MCPSecurityScanner'
     });
 
-    // 檢查不受信任的來源
+    // Check untrusted sources
     for (const { pattern, risk, title, description } of this.untrustedSources) {
       const matches = content.match(pattern);
       if (matches) {
@@ -172,7 +172,7 @@ export class MCPSecurityScanner {
       }
     }
 
-    // 檢查危險的 MCP 工具
+    // Check dangerous MCP tools
     for (const { pattern, risk, title, description } of this.dangerousMCPTools) {
       const matches = content.match(pattern);
       if (matches) {
@@ -185,7 +185,7 @@ export class MCPSecurityScanner {
       }
     }
 
-    // 檢查敏感環境變數
+    // Check sensitive environment variables
     for (const { pattern, risk, title, description } of this.sensitiveEnvPatterns) {
       const matches = content.match(pattern);
       if (matches) {
@@ -198,7 +198,7 @@ export class MCPSecurityScanner {
       }
     }
 
-    // 檢查危險組合
+    // Check dangerous combinations
     for (const combo of this.dangerousCombinations) {
       const hasAll = combo.patterns.every(p => p.test(content));
       if (hasAll) {
@@ -210,7 +210,7 @@ export class MCPSecurityScanner {
       }
     }
 
-    // 檢查是否使用官方 MCP servers
+    // Check if using official MCP servers
     this.checkTrustedServers(content, findings);
 
     return findings;
@@ -225,7 +225,7 @@ export class MCPSecurityScanner {
   }
 
   checkTrustedServers(content, findings) {
-    // 找出所有 MCP server 引用
+    // Find all MCP server references
     const serverPatterns = [
       /@[a-z0-9-]+\/[a-z0-9-]+/gi,  // npm scope packages
       /npx\s+([a-z0-9@/-]+)/gi      // npx commands
@@ -239,7 +239,7 @@ export class MCPSecurityScanner {
       }
     }
 
-    // 檢查是否有非官方的 server
+    // Check for non-official servers
     for (const server of foundServers) {
       const isTrusted = this.trustedMCPServers.some(ts =>
         server.includes(ts.toLowerCase())
@@ -247,8 +247,8 @@ export class MCPSecurityScanner {
 
       if (!isTrusted && server.includes('mcp')) {
         findings.medium.push({
-          title: '非官方 MCP Server',
-          description: `使用第三方 MCP server: ${server}`,
+          title: 'Non-official MCP Server',
+          description: `Using third-party MCP server: ${server}`,
           scanner: 'MCPSecurityScanner'
         });
       }

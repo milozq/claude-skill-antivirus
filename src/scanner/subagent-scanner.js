@@ -1,170 +1,170 @@
 /**
  * SubAgentScanner - Detects malicious sub-agent patterns and Task tool abuse
- * 偵測惡意的 Sub-agent 模式和 Task 工具濫用
+ * Identifies dangerous Task tool usage, privilege escalation, and agent chain attacks
  */
 export class SubAgentScanner {
   constructor() {
-    // 危險的 Agent 權限升級嘗試
+    // Dangerous agent privilege escalation attempts
     this.privilegeEscalationPatterns = [
       {
         pattern: /Task\s*\([^)]*subagent_type\s*[=:]\s*['"]?Bash['"]?/gi,
         risk: 'high',
-        title: 'Task 派生 Bash Agent',
-        description: 'Sub-agent 嘗試使用 Bash 類型，可執行任意命令'
+        title: 'Task spawning Bash Agent',
+        description: 'Sub-agent attempts to use Bash type, can execute arbitrary commands'
       },
       {
         pattern: /Task\s*\([^)]*model\s*[=:]\s*['"]?opus['"]?/gi,
         risk: 'medium',
-        title: 'Task 使用 Opus 模型',
-        description: 'Sub-agent 嘗試使用最強大的模型'
+        title: 'Task using Opus model',
+        description: 'Sub-agent attempts to use the most powerful model'
       },
       {
         pattern: /Task\s*\([^)]*allow[_-]?all/gi,
         risk: 'critical',
-        title: 'Task 要求所有權限',
-        description: 'Sub-agent 嘗試獲取所有工具權限'
+        title: 'Task requesting all permissions',
+        description: 'Sub-agent attempts to obtain all tool permissions'
       },
       {
         pattern: /Task\s*\([^)]*Bash\s*\(\s*\*\s*\)/gi,
         risk: 'critical',
-        title: 'Task 包含 Bash(*)',
-        description: 'Sub-agent 嘗試獲取無限制的 Shell 存取'
+        title: 'Task contains Bash(*)',
+        description: 'Sub-agent attempts to obtain unrestricted Shell access'
       }
     ];
 
-    // 危險的 Agent Prompt 內容
+    // Dangerous agent prompt content
     this.dangerousPromptPatterns = [
       {
         pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*ignore\s+(previous|all|safety)/gi,
         risk: 'critical',
         title: 'Task Prompt Injection',
-        description: 'Sub-agent prompt 包含 prompt injection 嘗試'
+        description: 'Sub-agent prompt contains prompt injection attempt'
       },
       {
         pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*you\s+are\s+(now\s+)?in\s+['"]?(god|admin|developer|root)/gi,
         risk: 'critical',
-        title: 'Task 角色提升嘗試',
-        description: 'Sub-agent prompt 嘗試角色提升'
+        title: 'Task role elevation attempt',
+        description: 'Sub-agent prompt attempts role elevation'
       },
       {
         pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*execute.*without.*verification/gi,
         risk: 'critical',
-        title: 'Task 繞過驗證',
-        description: 'Sub-agent prompt 嘗試繞過安全驗證'
+        title: 'Task bypassing verification',
+        description: 'Sub-agent prompt attempts to bypass security verification'
       },
       {
         pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*curl\s+.*\|\s*bash/gi,
         risk: 'critical',
-        title: 'Task 包含危險指令',
-        description: 'Sub-agent prompt 包含 curl | bash 等危險指令'
+        title: 'Task contains dangerous command',
+        description: 'Sub-agent prompt contains curl | bash and other dangerous commands'
       },
       {
         pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*rm\s+-rf/gi,
         risk: 'critical',
-        title: 'Task 包含刪除指令',
-        description: 'Sub-agent prompt 包含遞迴刪除指令'
+        title: 'Task contains delete command',
+        description: 'Sub-agent prompt contains recursive delete command'
       }
     ];
 
-    // Agent 鏈攻擊模式
+    // Agent chain attack patterns
     this.agentChainPatterns = [
       {
         pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*Task\s*\(/gi,
         risk: 'high',
-        title: 'Agent 嵌套呼叫',
-        description: 'Sub-agent 嘗試產生更多 sub-agents，可能形成攻擊鏈'
+        title: 'Agent nested calls',
+        description: 'Sub-agent attempts to spawn more sub-agents, may form attack chain'
       },
       {
         pattern: /(Task\s*\()[^)]*\){2,}/gi,
         risk: 'medium',
-        title: '多重 Task 呼叫',
-        description: '偵測到多個 Task 呼叫，檢查是否有協調攻擊'
+        title: 'Multiple Task calls',
+        description: 'Detected multiple Task calls, check for coordinated attack'
       }
     ];
 
-    // 迴圈/DoS 攻擊模式
+    // Loop/DoS attack patterns
     this.dosPatterns = [
       {
         pattern: /while\s*\([^)]*\)\s*\{[^}]*Task\s*\(/gi,
         risk: 'critical',
-        title: 'Task 迴圈呼叫',
-        description: 'Task 在迴圈中呼叫，可能導致 DoS'
+        title: 'Task loop call',
+        description: 'Task called in while loop, may cause DoS'
       },
       {
         pattern: /for\s*\([^)]*\)\s*\{[^}]*Task\s*\(/gi,
         risk: 'high',
-        title: 'Task for 迴圈',
-        description: 'Task 在 for 迴圈中呼叫，可能消耗大量資源'
+        title: 'Task for loop',
+        description: 'Task called in for loop, may consume large resources'
       },
       {
         pattern: /setInterval\s*\([^)]*Task/gi,
         risk: 'critical',
-        title: 'Task 定時重複',
-        description: 'Task 被設定為定時重複執行'
+        title: 'Task scheduled repeat',
+        description: 'Task set to execute repeatedly at intervals'
       },
       {
         pattern: /recursive|recursion/gi,
         risk: 'medium',
-        title: '遞迴關鍵字',
-        description: '偵測到遞迴相關關鍵字，檢查是否有無限遞迴風險'
+        title: 'Recursion keyword',
+        description: 'Detected recursion-related keywords, check for infinite recursion risk'
       }
     ];
 
-    // 資料竊取 Agent 模式
+    // Data theft agent patterns
     this.dataTheftAgentPatterns = [
       {
         pattern: /Task\s*\([^)]*(?:Read|Glob|Grep)[^)]*(?:WebFetch|curl|http)/gi,
         risk: 'critical',
-        title: 'Task 讀取+網路組合',
-        description: 'Sub-agent 同時包含讀取和網路工具，可能用於資料外洩'
+        title: 'Task Read + Network combination',
+        description: 'Sub-agent contains both read and network tools, may be used for data exfiltration'
       },
       {
         pattern: /Task\s*\([^)]*prompt\s*[=:][^)]*(\.env|\.ssh|\.aws|credential|secret|password)/gi,
         risk: 'critical',
-        title: 'Task 存取敏感資料',
-        description: 'Sub-agent prompt 嘗試存取敏感檔案'
+        title: 'Task accessing sensitive data',
+        description: 'Sub-agent prompt attempts to access sensitive files'
       },
       {
         pattern: /Task\s*\([^)]*Explore[^)]*(?:ssh|aws|credential|secret|password|\.env)/gi,
         risk: 'high',
-        title: 'Explore 敏感區域',
-        description: 'Explore agent 嘗試探索敏感目錄'
+        title: 'Explore sensitive areas',
+        description: 'Explore agent attempts to explore sensitive directories'
       }
     ];
 
-    // 背景執行風險
+    // Background execution risks
     this.backgroundPatterns = [
       {
         pattern: /Task\s*\([^)]*run[_-]?in[_-]?background\s*[=:]\s*true/gi,
         risk: 'medium',
-        title: 'Task 背景執行',
-        description: 'Sub-agent 要求在背景執行，需注意監控'
+        title: 'Task background execution',
+        description: 'Sub-agent requests background execution, needs monitoring'
       },
       {
         pattern: /Task\s*\([^)]*background[^)]*(?:curl|wget|nc|bash)/gi,
         risk: 'high',
-        title: '背景 Task 含網路/Shell',
-        description: '背景執行的 Task 包含網路或 Shell 存取'
+        title: 'Background Task with Network/Shell',
+        description: 'Background Task contains network or Shell access'
       }
     ];
 
-    // 不受信任的 Agent 類型
+    // Untrusted agent types
     this.untrustedAgentTypes = [
       {
         pattern: /subagent_type\s*[=:]\s*['"]?(?:shell|terminal|exec|admin|root)['"]?/gi,
         risk: 'critical',
-        title: '危險 Agent 類型',
-        description: '嘗試使用危險的 agent 類型'
+        title: 'Dangerous agent type',
+        description: 'Attempting to use dangerous agent type'
       },
       {
         pattern: /subagent_type\s*[=:]\s*['"]?(?:custom|unknown|generic)['"]?/gi,
         risk: 'medium',
-        title: '自訂 Agent 類型',
-        description: '使用自訂 agent 類型，需審查其能力'
+        title: 'Custom agent type',
+        description: 'Using custom agent type, review its capabilities'
       }
     ];
 
-    // Claude Code 特定的 Agent 類型
+    // Claude Code specific agent types
     this.knownAgentTypes = [
       'Explore', 'Plan', 'Bash', 'code-reviewer', 'debugger',
       'test-runner', 'doc-writer', 'security-auditor', 'general-purpose'
@@ -182,28 +182,28 @@ export class SubAgentScanner {
 
     const content = this.getAllContent(skillContent);
 
-    // 檢查是否使用 Task/Sub-agent
+    // Check if Task/Sub-agent is used
     const hasTask = /Task\s*\(|subagent|sub[_-]?agent/gi.test(content);
 
     if (!hasTask) {
-      return findings;  // 沒有 Task 使用，跳過掃描
+      return findings;  // No Task usage, skip scan
     }
 
     findings.info.push({
-      title: '偵測到 Sub-agent 使用',
-      description: 'Skill 使用 Task 工具產生 sub-agents',
+      title: 'Sub-agent usage detected',
+      description: 'Skill uses Task tool to spawn sub-agents',
       scanner: 'SubAgentScanner'
     });
 
-    // 掃描所有模式
+    // Scan all patterns
     const allPatternGroups = [
-      { name: '權限升級', patterns: this.privilegeEscalationPatterns },
-      { name: '危險 Prompt', patterns: this.dangerousPromptPatterns },
-      { name: 'Agent 鏈', patterns: this.agentChainPatterns },
-      { name: 'DoS 攻擊', patterns: this.dosPatterns },
-      { name: '資料竊取', patterns: this.dataTheftAgentPatterns },
-      { name: '背景執行', patterns: this.backgroundPatterns },
-      { name: '不受信任類型', patterns: this.untrustedAgentTypes }
+      { name: 'Privilege Escalation', patterns: this.privilegeEscalationPatterns },
+      { name: 'Dangerous Prompt', patterns: this.dangerousPromptPatterns },
+      { name: 'Agent Chain', patterns: this.agentChainPatterns },
+      { name: 'DoS Attack', patterns: this.dosPatterns },
+      { name: 'Data Theft', patterns: this.dataTheftAgentPatterns },
+      { name: 'Background Execution', patterns: this.backgroundPatterns },
+      { name: 'Untrusted Type', patterns: this.untrustedAgentTypes }
     ];
 
     for (const group of allPatternGroups) {
@@ -223,7 +223,7 @@ export class SubAgentScanner {
       }
     }
 
-    // 分析 Agent 使用模式
+    // Analyze agent usage patterns
     this.analyzeAgentUsage(content, findings);
 
     return findings;
@@ -238,27 +238,27 @@ export class SubAgentScanner {
   }
 
   analyzeAgentUsage(content, findings) {
-    // 統計 Task 呼叫次數
+    // Count Task calls
     const taskMatches = content.match(/Task\s*\(/gi) || [];
     const taskCount = taskMatches.length;
 
     if (taskCount > 5) {
       findings.medium.push({
-        title: '[行為分析] 大量 Task 呼叫',
-        description: `偵測到 ${taskCount} 個 Task 呼叫，請審查每個的必要性`,
+        title: '[Behavior Analysis] Large number of Task calls',
+        description: `Detected ${taskCount} Task calls, review necessity of each`,
         scanner: 'SubAgentScanner'
       });
     }
 
     if (taskCount > 10) {
       findings.high.push({
-        title: '[行為分析] 過多 Task 呼叫',
-        description: `偵測到 ${taskCount} 個 Task 呼叫，可能影響效能或存在濫用`,
+        title: '[Behavior Analysis] Excessive Task calls',
+        description: `Detected ${taskCount} Task calls, may affect performance or indicate abuse`,
         scanner: 'SubAgentScanner'
       });
     }
 
-    // 檢查是否有未知的 agent 類型
+    // Check for unknown agent types
     const agentTypePattern = /subagent_type\s*[=:]\s*['"]?([a-zA-Z0-9-_]+)['"]?/gi;
     let match;
     const foundTypes = new Set();
@@ -274,40 +274,40 @@ export class SubAgentScanner {
 
       if (!isKnown) {
         findings.low.push({
-          title: '[Agent 類型] 非標準類型',
-          description: `使用非標準 agent 類型: ${type}`,
+          title: '[Agent Type] Non-standard type',
+          description: `Using non-standard agent type: ${type}`,
           scanner: 'SubAgentScanner'
         });
       }
     }
 
-    // 檢查 parallel agents 濫用
-    const parallelPattern = /parallel|concurrent|同時|平行/gi;
+    // Check parallel agents abuse
+    const parallelPattern = /parallel|concurrent/gi;
     const hasParallel = parallelPattern.test(content);
 
     if (hasParallel && taskCount > 3) {
       findings.medium.push({
-        title: '[行為分析] 平行 Agent 執行',
-        description: 'Skill 使用平行 agent 執行，確保資源使用合理',
+        title: '[Behavior Analysis] Parallel Agent execution',
+        description: 'Skill uses parallel agent execution, ensure reasonable resource usage',
         scanner: 'SubAgentScanner'
       });
     }
 
-    // 檢查是否有敏感工具組合
+    // Check for sensitive tool combinations
     const hasReadTools = /Read|Glob|Grep/gi.test(content);
     const hasWriteTools = /Write|Edit/gi.test(content);
     const hasNetworkTools = /WebFetch|curl|wget|http/gi.test(content);
     const hasBashTools = /Bash/gi.test(content);
 
     const dangerousCombos = [];
-    if (hasReadTools && hasNetworkTools) dangerousCombos.push('讀取+網路');
-    if (hasBashTools && hasNetworkTools) dangerousCombos.push('Shell+網路');
-    if (hasReadTools && hasWriteTools && hasBashTools) dangerousCombos.push('完整存取');
+    if (hasReadTools && hasNetworkTools) dangerousCombos.push('Read+Network');
+    if (hasBashTools && hasNetworkTools) dangerousCombos.push('Shell+Network');
+    if (hasReadTools && hasWriteTools && hasBashTools) dangerousCombos.push('Full Access');
 
     if (dangerousCombos.length > 0) {
       findings.high.push({
-        title: '[行為分析] 危險工具組合',
-        description: `Sub-agents 使用危險工具組合: ${dangerousCombos.join(', ')}`,
+        title: '[Behavior Analysis] Dangerous tool combination',
+        description: `Sub-agents use dangerous tool combination: ${dangerousCombos.join(', ')}`,
         scanner: 'SubAgentScanner'
       });
     }

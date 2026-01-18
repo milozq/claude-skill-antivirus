@@ -7,35 +7,36 @@ import { MCPSecurityScanner } from './mcp-security.js';
 import { SSRFScanner } from './ssrf-scanner.js';
 import { DependencyScanner } from './dependency-scanner.js';
 import { SubAgentScanner } from './subagent-scanner.js';
+import { t } from '../i18n/index.js';
 
 /**
  * SecurityScanner - Main scanner that orchestrates all security checks
- * 整合型防毒掃描引擎，偵測 Skills 中的惡意行為
+ * Integrated antivirus scanning engine for detecting malicious behavior in Skills
  *
- * 9 大掃描引擎：
- * 1. DangerousCommandScanner - 危險指令偵測
- * 2. PermissionScanner - 權限範圍檢查
- * 3. ExternalConnectionScanner - 外部連線分析
- * 4. PatternScanner - 惡意模式匹配
- * 5. DataExfiltrationScanner - 資料外洩偵測
- * 6. MCPSecurityScanner - MCP Server 安全檢查
- * 7. SSRFScanner - SSRF/雲端攻擊偵測
- * 8. DependencyScanner - 依賴安全檢查
- * 9. SubAgentScanner - Sub-agent 攻擊偵測
+ * 9 Scanning Engines:
+ * 1. DangerousCommandScanner - Dangerous command detection
+ * 2. PermissionScanner - Permission scope analysis
+ * 3. ExternalConnectionScanner - External connection analysis
+ * 4. PatternScanner - Malicious pattern matching
+ * 5. DataExfiltrationScanner - Data exfiltration detection
+ * 6. MCPSecurityScanner - MCP Server security checks
+ * 7. SSRFScanner - SSRF/Cloud attack detection
+ * 8. DependencyScanner - Dependency security analysis
+ * 9. SubAgentScanner - Sub-agent attack detection
  */
 export class SecurityScanner {
   constructor(verbose = false) {
     this.verbose = verbose;
     this.scanners = [
-      new DangerousCommandScanner(),      // 危險指令偵測
-      new PermissionScanner(),             // 權限範圍檢查
-      new ExternalConnectionScanner(),     // 外部連線分析
-      new PatternScanner(),                // 惡意模式匹配
-      new DataExfiltrationScanner(),       // 資料外洩偵測
-      new MCPSecurityScanner(),            // MCP Server 安全檢查
-      new SSRFScanner(),                   // SSRF/雲端攻擊偵測
-      new DependencyScanner(),             // 依賴安全檢查
-      new SubAgentScanner()                // Sub-agent 攻擊偵測
+      new DangerousCommandScanner(),      // Dangerous command detection
+      new PermissionScanner(),             // Permission scope analysis
+      new ExternalConnectionScanner(),     // External connection analysis
+      new PatternScanner(),                // Malicious pattern matching
+      new DataExfiltrationScanner(),       // Data exfiltration detection
+      new MCPSecurityScanner(),            // MCP Server security checks
+      new SSRFScanner(),                   // SSRF/Cloud attack detection
+      new DependencyScanner(),             // Dependency security analysis
+      new SubAgentScanner()                // Sub-agent attack detection
     ];
   }
 
@@ -114,13 +115,6 @@ export class SecurityScanner {
   }
 
   getRecommendation(riskLevel) {
-    const recommendations = {
-      'CRITICAL': 'DO NOT INSTALL - This skill contains critical security risks that could harm your system.',
-      'HIGH': 'Installation not recommended - Review all high-risk findings carefully before proceeding.',
-      'MEDIUM': 'Proceed with caution - Some potentially risky patterns detected.',
-      'LOW': 'Generally safe - Minor concerns detected, review before use.',
-      'SAFE': 'Safe to install - No significant security concerns detected.'
-    };
-    return recommendations[riskLevel];
+    return t(`recommendations.${riskLevel.toLowerCase()}`);
   }
 }

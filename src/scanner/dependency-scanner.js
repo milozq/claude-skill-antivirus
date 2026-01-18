@@ -1,32 +1,32 @@
 /**
  * DependencyScanner - Detects malicious or vulnerable dependencies
- * 偵測惡意或有漏洞的依賴套件
+ * Identifies known malicious packages, typosquatting, and suspicious install patterns
  */
 export class DependencyScanner {
   constructor() {
-    // 已知惡意 npm 套件（這只是範例，實際應該連接威脅情報來源）
+    // Known malicious npm packages (this is an example, should connect to threat intelligence source)
     this.knownMaliciousPackages = [
-      // 實際惡意套件
-      'event-stream',           // 著名的比特幣竊取事件
-      'flatmap-stream',         // event-stream 的惡意依賴
-      'ua-parser-js',           // 被入侵版本
-      'coa',                    // 被入侵版本
-      'rc',                     // 被入侵版本
-      'colors',                 // 被作者破壞的版本
-      'faker',                  // 被作者破壞的版本
-      'node-ipc',               // protestware
-      'peacenotwar',            // protestware 依賴
-      // 常見惡意套件名稱模式
-      'cross-env-',             // typosquat of cross-env
-      'crossenv',               // typosquat of cross-env
-      'lodash-',                // typosquat attempts
-      'babelcli',               // typosquat of babel-cli
-      'mongose',                // typosquat of mongoose
+      // Actual malicious packages
+      'event-stream',           // Famous bitcoin stealing incident
+      'flatmap-stream',         // Malicious dependency of event-stream
+      'ua-parser-js',           // Compromised version
+      'coa',                    // Compromised version
+      'rc',                     // Compromised version
+      'colors',                 // Sabotaged by author
+      'faker',                  // Sabotaged by author
+      'node-ipc',               // Protestware
+      'peacenotwar',            // Protestware dependency
+      // Common malicious package name patterns
+      'cross-env-',             // Typosquat of cross-env
+      'crossenv',               // Typosquat of cross-env
+      'lodash-',                // Typosquat attempts
+      'babelcli',               // Typosquat of babel-cli
+      'mongose',                // Typosquat of mongoose
     ];
 
-    // Typosquatting 檢測模式
+    // Typosquatting detection patterns
     this.typosquatPatterns = [
-      // 熱門套件的常見 typo
+      // Common typos of popular packages
       {
         legitimate: 'lodash',
         typos: ['lodash-', 'lodas', 'lodahs', 'lodesh', 'lod-ash', 'loadash'],
@@ -79,79 +79,79 @@ export class DependencyScanner {
       }
     ];
 
-    // 可疑的安裝模式
+    // Suspicious installation patterns
     this.suspiciousInstallPatterns = [
       {
         pattern: /npm\s+install\s+[^-\s]*@\d+\.\d+\.\d+-[a-z]+/gi,
         risk: 'medium',
-        title: '安裝 prerelease 版本',
-        description: '安裝 alpha/beta/rc 版本，可能不穩定或含惡意代碼'
+        title: 'Installing prerelease version',
+        description: 'Installing alpha/beta/rc version, may be unstable or contain malicious code'
       },
       {
         pattern: /npm\s+install\s+https?:\/\//gi,
         risk: 'high',
-        title: '從 URL 安裝套件',
-        description: '直接從 URL 安裝 npm 套件，無法驗證完整性'
+        title: 'Installing package from URL',
+        description: 'Installing npm package directly from URL, cannot verify integrity'
       },
       {
         pattern: /npm\s+install\s+git\+/gi,
         risk: 'medium',
-        title: '從 Git 安裝套件',
-        description: '從 Git 倉庫安裝，可能指向惡意分支'
+        title: 'Installing package from Git',
+        description: 'Installing from Git repository, may point to malicious branch'
       },
       {
         pattern: /npm\s+install\s+--ignore-scripts/gi,
         risk: 'low',
-        title: '忽略安裝腳本',
-        description: '雖然這是安全措施，但也可能隱藏其他問題'
+        title: 'Ignoring install scripts',
+        description: 'While this is a security measure, it may also hide other issues'
       },
       {
         pattern: /npm\s+install\s+--force/gi,
         risk: 'medium',
-        title: '強制安裝',
-        description: '強制安裝可能覆蓋安全警告'
+        title: 'Force install',
+        description: 'Force install may override security warnings'
       },
       {
         pattern: /npm\s+set\s+registry/gi,
         risk: 'high',
-        title: '修改 npm registry',
-        description: '更改 npm registry 可能導向惡意鏡像'
+        title: 'Modifying npm registry',
+        description: 'Changing npm registry may redirect to malicious mirror'
       }
     ];
 
-    // pip 惡意套件
+    // pip malicious packages
     this.maliciousPipPackages = [
-      'colourama',              // typosquat of colorama
-      'python-sqlite',          // typosquat of sqlite3
-      'python-mysql',           // typosquat
-      'reqeusts',               // typosquat of requests
-      'djanga',                 // typosquat of django
-      'beautifulsoup',          // old/wrong name
+      'colourama',              // Typosquat of colorama
+      'python-sqlite',          // Typosquat of sqlite3
+      'python-mysql',           // Typosquat
+      'reqeusts',               // Typosquat of requests
+      'djanga',                 // Typosquat of django
+      'beautifulsoup',          // Old/wrong name
     ];
 
-    // pip 可疑安裝
+    // pip suspicious installation
     this.suspiciousPipPatterns = [
       {
         pattern: /pip\s+install\s+--trusted-host/gi,
         risk: 'high',
-        title: 'pip 信任不安全主機',
-        description: '信任未驗證的 pip 主機'
+        title: 'pip trusting insecure host',
+        description: 'Trusting unverified pip host'
       },
       {
         pattern: /pip\s+install\s+--index-url\s+http:/gi,
         risk: 'critical',
-        title: 'pip 使用 HTTP index',
-        description: '使用不安全的 HTTP 連接安裝套件'
+        title: 'pip using HTTP index',
+        description: 'Using insecure HTTP connection for package installation'
       },
       {
         pattern: /pip\s+install\s+git\+/gi,
         risk: 'medium',
-        title: 'pip 從 Git 安裝',
-        description: '從 Git 安裝 Python 套件'
+        title: 'pip installing from Git',
+        description: 'Installing Python package from Git'
       }
     ];
 
-    // 套件安裝指令偵測
+    // Package manager command detection
     this.packageManagerPatterns = [
       {
         pattern: /npm\s+i(?:nstall)?\s+([^\s&|;]+)/gi,
@@ -187,37 +187,37 @@ export class DependencyScanner {
       }
     ];
 
-    // postinstall 腳本風險
+    // postinstall script risks
     this.postinstallRisks = [
       {
         pattern: /"(pre|post)?install"\s*:\s*"[^"]*curl/gi,
         risk: 'critical',
-        title: 'Install 腳本下載',
-        description: 'package.json install 腳本包含下載操作'
+        title: 'Install script downloads',
+        description: 'package.json install script contains download operation'
       },
       {
         pattern: /"(pre|post)?install"\s*:\s*"[^"]*wget/gi,
         risk: 'critical',
-        title: 'Install 腳本下載',
-        description: 'package.json install 腳本包含 wget'
+        title: 'Install script downloads',
+        description: 'package.json install script contains wget'
       },
       {
         pattern: /"(pre|post)?install"\s*:\s*"[^"]*eval/gi,
         risk: 'critical',
-        title: 'Install 腳本 eval',
-        description: 'package.json install 腳本使用 eval'
+        title: 'Install script eval',
+        description: 'package.json install script uses eval'
       },
       {
         pattern: /"(pre|post)?install"\s*:\s*"[^"]*node\s+-e/gi,
         risk: 'high',
-        title: 'Install 腳本執行 Node',
-        description: 'Install 腳本直接執行 Node 代碼'
+        title: 'Install script executes Node',
+        description: 'Install script directly executes Node code'
       },
       {
         pattern: /"(pre|post)?install"\s*:\s*"[^"]*python/gi,
         risk: 'medium',
-        title: 'Install 腳本執行 Python',
-        description: 'Install 腳本執行 Python'
+        title: 'Install script executes Python',
+        description: 'Install script executes Python'
       }
     ];
   }
@@ -233,13 +233,13 @@ export class DependencyScanner {
 
     const content = this.getAllContent(skillContent);
 
-    // 偵測已知惡意套件
+    // Detect known malicious packages
     this.checkMaliciousPackages(content, findings);
 
-    // 偵測 typosquatting
+    // Detect typosquatting
     this.checkTyposquatting(content, findings);
 
-    // 檢查可疑安裝模式
+    // Check suspicious installation patterns
     for (const { pattern, risk, title, description } of this.suspiciousInstallPatterns) {
       const matches = content.match(pattern);
       if (matches) {
@@ -252,19 +252,19 @@ export class DependencyScanner {
       }
     }
 
-    // 檢查 pip 惡意套件
+    // Check pip malicious packages
     for (const pkg of this.maliciousPipPackages) {
       const pattern = new RegExp(`pip\\s+install\\s+[^\\n]*\\b${pkg}\\b`, 'gi');
       if (pattern.test(content)) {
         findings.critical.push({
-          title: '[pip] 已知惡意套件',
-          description: `偵測到已知惡意 Python 套件: ${pkg}`,
+          title: '[pip] Known malicious package',
+          description: `Detected known malicious Python package: ${pkg}`,
           scanner: 'DependencyScanner'
         });
       }
     }
 
-    // 檢查 pip 可疑安裝
+    // Check pip suspicious installation
     for (const { pattern, risk, title, description } of this.suspiciousPipPatterns) {
       const matches = content.match(pattern);
       if (matches) {
@@ -277,7 +277,7 @@ export class DependencyScanner {
       }
     }
 
-    // 檢查 postinstall 腳本風險
+    // Check postinstall script risks
     for (const { pattern, risk, title, description } of this.postinstallRisks) {
       const matches = content.match(pattern);
       if (matches) {
@@ -290,7 +290,7 @@ export class DependencyScanner {
       }
     }
 
-    // 統計安裝的套件
+    // Summarize installed packages
     this.summarizePackages(content, findings);
 
     return findings;
@@ -306,25 +306,25 @@ export class DependencyScanner {
 
   checkMaliciousPackages(content, findings) {
     for (const pkg of this.knownMaliciousPackages) {
-      // 檢查 npm install 指令
+      // Check npm install commands
       const npmPattern = new RegExp(`npm\\s+i(?:nstall)?\\s+[^\\n]*\\b${pkg}\\b`, 'gi');
       const yarnPattern = new RegExp(`yarn\\s+add\\s+[^\\n]*\\b${pkg}\\b`, 'gi');
       const pnpmPattern = new RegExp(`pnpm\\s+(?:add|install)\\s+[^\\n]*\\b${pkg}\\b`, 'gi');
 
       if (npmPattern.test(content) || yarnPattern.test(content) || pnpmPattern.test(content)) {
         findings.critical.push({
-          title: '[npm] 已知惡意/問題套件',
-          description: `偵測到已知問題套件: ${pkg}，此套件曾有安全事件或已被廢棄`,
+          title: '[npm] Known malicious/problematic package',
+          description: `Detected known problematic package: ${pkg}, this package has had security incidents or has been abandoned`,
           scanner: 'DependencyScanner'
         });
       }
 
-      // 也檢查 package.json 依賴
+      // Also check package.json dependencies
       const depPattern = new RegExp(`"${pkg}"\\s*:\\s*"`, 'gi');
       if (depPattern.test(content)) {
         findings.critical.push({
-          title: '[package.json] 已知問題依賴',
-          description: `package.json 包含已知問題套件: ${pkg}`,
+          title: '[package.json] Known problematic dependency',
+          description: `package.json contains known problematic package: ${pkg}`,
           scanner: 'DependencyScanner'
         });
       }
@@ -337,8 +337,8 @@ export class DependencyScanner {
         const pattern = new RegExp(`\\b${typo}\\b`, 'gi');
         if (pattern.test(content)) {
           findings[risk].push({
-            title: '[Typosquatting] 可疑套件名稱',
-            description: `偵測到 "${typo}"，可能是 "${legitimate}" 的拼寫錯誤（typosquatting 攻擊）`,
+            title: '[Typosquatting] Suspicious package name',
+            description: `Detected "${typo}", may be a typo of "${legitimate}" (typosquatting attack)`,
             scanner: 'DependencyScanner'
           });
         }
@@ -362,17 +362,17 @@ export class DependencyScanner {
 
     if (packages.size > 0) {
       findings.info.push({
-        title: `偵測到 ${packages.size} 個套件安裝指令`,
-        description: `套件: ${[...packages].slice(0, 10).join(', ')}${packages.size > 10 ? '...' : ''}`,
+        title: `Detected ${packages.size} package install commands`,
+        description: `Packages: ${[...packages].slice(0, 10).join(', ')}${packages.size > 10 ? '...' : ''}`,
         scanner: 'DependencyScanner'
       });
     }
 
-    // 如果安裝大量套件，提醒審查
+    // Alert if installing many packages
     if (packages.size > 10) {
       findings.medium.push({
-        title: '大量套件安裝',
-        description: `Skill 安裝 ${packages.size} 個套件，請仔細審查每個套件`,
+        title: 'Large number of package installations',
+        description: `Skill installs ${packages.size} packages, please review each package carefully`,
         scanner: 'DependencyScanner'
       });
     }

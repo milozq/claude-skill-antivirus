@@ -24,10 +24,28 @@ export class PatternScanner {
         description: 'Attempts to change AI role to privileged mode'
       },
       {
-        pattern: /DAN|Do\s+Anything\s+Now/gi,
+        pattern: /Do\s+Anything\s+Now/gi,
         risk: 'critical',
-        title: 'Known jailbreak pattern (DAN)',
-        description: 'Contains known AI jailbreak pattern'
+        title: 'Jailbreak pattern (Do Anything Now)',
+        description: 'Contains explicit AI jailbreak phrase'
+      },
+      {
+        pattern: /you\s+are\s+(now\s+)?DAN/gi,
+        risk: 'critical',
+        title: 'DAN role assignment',
+        description: 'Attempts to assign DAN jailbreak role to AI'
+      },
+      {
+        pattern: /\bDAN\s+mode\b|\bact\s+as\s+DAN\b|\benable\s+DAN\b/gi,
+        risk: 'critical',
+        title: 'DAN mode activation',
+        description: 'Attempts to activate DAN jailbreak mode'
+      },
+      {
+        pattern: /\bDAN\b(?=.*\b(ignore|bypass|override|unlimited|unrestricted)\b)/gi,
+        risk: 'high',
+        title: 'DAN with bypass keywords',
+        description: 'DAN mentioned with security bypass keywords'
       },
       {
         pattern: /system\s*:\s*you\s+(must|should|will)\s+ignore/gi,

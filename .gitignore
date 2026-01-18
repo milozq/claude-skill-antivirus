@@ -20,3 +20,4 @@ coverage/
 
 # Build output
 dist/
+scan-reports/

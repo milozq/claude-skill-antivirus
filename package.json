@@ -6,7 +6,8 @@
   "type": "module",
   "bin": {
     "skill-install": "./src/index.js",
-    "claude-skill-av": "./src/index.js"
+    "claude-skill-av": "./src/index.js",
+    "skill-batch-scan": "./src/batch-scanner.js"
   },
   "scripts": {
     "start": "node src/index.js",
@@ -25,7 +26,7 @@
     "claude-code",
     "anthropic"
   ],
-  "author": "Lucas <cp7777.tw@gmail.com>",
+  "author": "Lucas Wang <support@claude-world.com>",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
@@ -47,10 +48,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gn00295120/claude-skill-antivirus.git"
+    "url": "git+https://github.com/claude-world/claude-skill-antivirus.git"
   },
   "bugs": {
-    "url": "https://github.com/gn00295120/claude-skill-antivirus/issues"
+    "url": "https://github.com/claude-world/claude-skill-antivirus/issues"
   },
-  "homepage": "https://github.com/gn00295120/claude-skill-antivirus#readme"
+  "homepage": "https://github.com/claude-world/claude-skill-antivirus#readme"
 }

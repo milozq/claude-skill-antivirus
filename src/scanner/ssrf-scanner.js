@@ -1,256 +1,256 @@
 /**
  * SSRFScanner - Detects Server-Side Request Forgery and cloud attack patterns
- * 偵測 SSRF 和雲端攻擊模式
+ * Identifies SSRF vulnerabilities and cloud infrastructure exploitation attempts
  */
 export class SSRFScanner {
   constructor() {
-    // 雲端 Metadata Endpoint（最危險）
+    // Cloud Metadata Endpoints (most dangerous)
     this.cloudMetadataEndpoints = [
       {
         pattern: /169\.254\.169\.254/g,
         risk: 'critical',
         title: 'AWS/GCP Metadata Endpoint',
-        description: '嘗試存取雲端 metadata endpoint，可竊取 IAM 憑證'
+        description: 'Attempts to access cloud metadata endpoint, can steal IAM credentials'
       },
       {
         pattern: /metadata\.google\.internal/gi,
         risk: 'critical',
         title: 'GCP Metadata Endpoint',
-        description: '嘗試存取 Google Cloud metadata'
+        description: 'Attempts to access Google Cloud metadata'
       },
       {
         pattern: /169\.254\.170\.2/g,
         risk: 'critical',
         title: 'AWS ECS Metadata',
-        description: '嘗試存取 AWS ECS container metadata'
+        description: 'Attempts to access AWS ECS container metadata'
       },
       {
         pattern: /100\.100\.100\.200/g,
         risk: 'critical',
         title: 'Alibaba Cloud Metadata',
-        description: '嘗試存取阿里雲 metadata endpoint'
+        description: 'Attempts to access Alibaba Cloud metadata endpoint'
       },
       {
         pattern: /metadata\.azure\.(com|net)/gi,
         risk: 'critical',
         title: 'Azure Metadata Endpoint',
-        description: '嘗試存取 Azure Instance Metadata Service'
+        description: 'Attempts to access Azure Instance Metadata Service'
       },
       {
         pattern: /\/latest\/meta-data|\/latest\/user-data|\/latest\/dynamic/gi,
         risk: 'critical',
         title: 'Cloud Metadata Path',
-        description: '偵測到雲端 metadata 路徑模式'
+        description: 'Detected cloud metadata path pattern'
       },
       {
         pattern: /\/computeMetadata\/v1/gi,
         risk: 'critical',
         title: 'GCP Compute Metadata',
-        description: '嘗試存取 GCP compute metadata'
+        description: 'Attempts to access GCP compute metadata'
       },
       {
         pattern: /Metadata-Flavor:\s*Google/gi,
         risk: 'critical',
         title: 'GCP Metadata Header',
-        description: '使用 GCP metadata 請求標頭'
+        description: 'Using GCP metadata request header'
       }
     ];
 
-    // 內部網路探測
+    // Internal network probing
     this.internalNetworkPatterns = [
       {
         pattern: /https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}/gi,
         risk: 'high',
-        title: '內部網路存取 (10.x.x.x)',
-        description: '嘗試存取 Class A 私有網路'
+        title: 'Internal network access (10.x.x.x)',
+        description: 'Attempts to access Class A private network'
       },
       {
         pattern: /https?:\/\/172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}/gi,
         risk: 'high',
-        title: '內部網路存取 (172.16-31.x.x)',
-        description: '嘗試存取 Class B 私有網路'
+        title: 'Internal network access (172.16-31.x.x)',
+        description: 'Attempts to access Class B private network'
       },
       {
         pattern: /https?:\/\/192\.168\.\d{1,3}\.\d{1,3}/gi,
         risk: 'high',
-        title: '內部網路存取 (192.168.x.x)',
-        description: '嘗試存取 Class C 私有網路'
+        title: 'Internal network access (192.168.x.x)',
+        description: 'Attempts to access Class C private network'
       },
       {
         pattern: /https?:\/\/127\.\d{1,3}\.\d{1,3}\.\d{1,3}/gi,
         risk: 'high',
-        title: 'Loopback 存取',
-        description: '嘗試存取 loopback 網路'
+        title: 'Loopback access',
+        description: 'Attempts to access loopback network'
       },
       {
         pattern: /https?:\/\/0\.0\.0\.0/gi,
         risk: 'high',
-        title: '存取 0.0.0.0',
-        description: '嘗試存取所有網路介面'
+        title: 'Access 0.0.0.0',
+        description: 'Attempts to access all network interfaces'
       },
       {
         pattern: /https?:\/\/\[::1?\]/gi,
         risk: 'high',
         title: 'IPv6 Loopback',
-        description: '嘗試存取 IPv6 loopback'
+        description: 'Attempts to access IPv6 loopback'
       },
       {
         pattern: /https?:\/\/localhost/gi,
         risk: 'medium',
-        title: 'Localhost 存取',
-        description: '存取 localhost，可能是 SSRF'
+        title: 'Localhost access',
+        description: 'Accessing localhost, potential SSRF'
       }
     ];
 
-    // 常見內部服務端口
+    // Common internal service ports
     this.internalServicePatterns = [
       {
         pattern: /:\s*(6379|27017|5432|3306|9200|9300|11211|5672|15672|8500|2379)/g,
         risk: 'high',
-        title: '內部服務端口探測',
-        description: '偵測到常見內部服務端口（Redis、MongoDB、PostgreSQL、MySQL、Elasticsearch、Consul 等）'
+        title: 'Internal service port probing',
+        description: 'Detected common internal service ports (Redis, MongoDB, PostgreSQL, MySQL, Elasticsearch, Consul, etc.)'
       },
       {
         pattern: /:\s*(22|23|3389|5900)/g,
         risk: 'medium',
-        title: '遠端管理端口',
-        description: '偵測到 SSH、Telnet、RDP、VNC 端口'
+        title: 'Remote management ports',
+        description: 'Detected SSH, Telnet, RDP, VNC ports'
       },
       {
         pattern: /:8080|:8443|:9000|:9090|:3000|:4000|:5000|:8000/g,
         risk: 'low',
-        title: '常見開發端口',
-        description: '偵測到常見 Web 開發端口'
+        title: 'Common development ports',
+        description: 'Detected common web development ports'
       }
     ];
 
-    // SSRF Bypass 技術
+    // SSRF Bypass techniques
     this.ssrfBypassPatterns = [
       {
         pattern: /0x[0-9a-f]+\.[0-9a-f]+\.[0-9a-f]+\.[0-9a-f]+/gi,
         risk: 'critical',
         title: 'SSRF Bypass - Hex IP',
-        description: '使用十六進位 IP 繞過過濾'
+        description: 'Using hexadecimal IP to bypass filtering'
       },
       {
-        pattern: /\d{8,10}/g,  // 十進位 IP (e.g., 2130706433 = 127.0.0.1)
+        pattern: /\d{8,10}/g,  // Decimal IP (e.g., 2130706433 = 127.0.0.1)
         risk: 'medium',
-        title: '可能的十進位 IP',
-        description: '大數字可能是十進位 IP 編碼'
+        title: 'Possible decimal IP',
+        description: 'Large number may be decimal IP encoding'
       },
       {
         pattern: /%2f%2f|%252f|%00/gi,
         risk: 'high',
-        title: 'URL 編碼繞過',
-        description: '使用 URL 編碼嘗試繞過過濾'
+        title: 'URL encoding bypass',
+        description: 'Using URL encoding to attempt filter bypass'
       },
       {
         pattern: /@|#.*@/g,
         risk: 'medium',
-        title: 'URL Authority 混淆',
-        description: '使用 @ 符號可能進行 URL 混淆攻擊'
+        title: 'URL Authority confusion',
+        description: 'Using @ symbol may indicate URL obfuscation attack'
       },
       {
         pattern: /\\\\[a-z0-9.-]+\\/gi,
         risk: 'high',
-        title: 'UNC 路徑',
-        description: '使用 UNC 路徑可能存取網路共享'
+        title: 'UNC path',
+        description: 'Using UNC path may access network shares'
       },
       {
         pattern: /file:\/\//gi,
         risk: 'critical',
         title: 'File Protocol',
-        description: '使用 file:// 協議讀取本地檔案'
+        description: 'Using file:// protocol to read local files'
       },
       {
         pattern: /gopher:\/\//gi,
         risk: 'critical',
         title: 'Gopher Protocol',
-        description: 'Gopher 協議常用於 SSRF 攻擊'
+        description: 'Gopher protocol commonly used for SSRF attacks'
       },
       {
         pattern: /dict:\/\//gi,
         risk: 'high',
         title: 'Dict Protocol',
-        description: 'Dict 協議可用於探測服務'
+        description: 'Dict protocol can be used for service probing'
       },
       {
         pattern: /ldap:\/\/|ldaps:\/\//gi,
         risk: 'high',
         title: 'LDAP Protocol',
-        description: 'LDAP 協議可能導致資訊洩漏'
+        description: 'LDAP protocol may lead to information disclosure'
       }
     ];
 
-    // Kubernetes 特定攻擊
+    // Kubernetes specific attacks
     this.kubernetesPatterns = [
       {
         pattern: /kubernetes\.default|\.svc\.cluster\.local/gi,
         risk: 'critical',
-        title: 'Kubernetes 內部服務',
-        description: '嘗試存取 Kubernetes 內部服務'
+        title: 'Kubernetes internal service',
+        description: 'Attempts to access Kubernetes internal service'
       },
       {
         pattern: /\/api\/v1\/namespaces|\/apis\//gi,
         risk: 'critical',
-        title: 'Kubernetes API 路徑',
-        description: '嘗試存取 Kubernetes API'
+        title: 'Kubernetes API path',
+        description: 'Attempts to access Kubernetes API'
       },
       {
         pattern: /kube-system|kube-public|default/gi,
         risk: 'medium',
         title: 'Kubernetes Namespace',
-        description: '引用 Kubernetes 系統 namespace'
+        description: 'References Kubernetes system namespace'
       },
       {
         pattern: /serviceaccount|\.kube\/config/gi,
         risk: 'high',
-        title: 'Kubernetes 認證',
-        description: '嘗試存取 Kubernetes 認證資訊'
+        title: 'Kubernetes authentication',
+        description: 'Attempts to access Kubernetes authentication info'
       }
     ];
 
-    // Docker 特定攻擊
+    // Docker specific attacks
     this.dockerPatterns = [
       {
         pattern: /\/var\/run\/docker\.sock/gi,
         risk: 'critical',
-        title: 'Docker Socket 存取',
-        description: '嘗試存取 Docker socket，可接管主機'
+        title: 'Docker Socket access',
+        description: 'Attempts to access Docker socket, can take over host'
       },
       {
         pattern: /docker\s+(exec|run|cp)/gi,
         risk: 'high',
-        title: 'Docker 命令執行',
-        description: '執行 Docker 命令'
+        title: 'Docker command execution',
+        description: 'Executing Docker commands'
       },
       {
         pattern: /--privileged|--cap-add/gi,
         risk: 'critical',
-        title: 'Docker 特權模式',
-        description: '使用 Docker 特權模式或增加 capabilities'
+        title: 'Docker privileged mode',
+        description: 'Using Docker privileged mode or adding capabilities'
       }
     ];
 
-    // AWS 特定攻擊
+    // AWS specific attacks
     this.awsPatterns = [
       {
         pattern: /iam\/security-credentials/gi,
         risk: 'critical',
-        title: 'AWS IAM 憑證存取',
-        description: '嘗試從 metadata 取得 IAM 憑證'
+        title: 'AWS IAM credential access',
+        description: 'Attempts to obtain IAM credentials from metadata'
       },
       {
         pattern: /identity-credentials\/ec2/gi,
         risk: 'critical',
         title: 'AWS EC2 Identity',
-        description: '嘗試取得 EC2 身份憑證'
+        description: 'Attempts to obtain EC2 identity credentials'
       },
       {
         pattern: /X-aws-ec2-metadata-token/gi,
         risk: 'high',
         title: 'AWS IMDSv2 Token',
-        description: '偵測 AWS IMDSv2 token 請求'
+        description: 'Detected AWS IMDSv2 token request'
       }
     ];
   }
@@ -266,12 +266,12 @@ export class SSRFScanner {
 
     const content = this.getAllContent(skillContent);
 
-    // 掃描所有模式類別
+    // Scan all pattern categories
     const allPatternGroups = [
-      { name: '雲端 Metadata', patterns: this.cloudMetadataEndpoints },
-      { name: '內部網路', patterns: this.internalNetworkPatterns },
-      { name: '內部服務', patterns: this.internalServicePatterns },
-      { name: 'SSRF 繞過', patterns: this.ssrfBypassPatterns },
+      { name: 'Cloud Metadata', patterns: this.cloudMetadataEndpoints },
+      { name: 'Internal Network', patterns: this.internalNetworkPatterns },
+      { name: 'Internal Service', patterns: this.internalServicePatterns },
+      { name: 'SSRF Bypass', patterns: this.ssrfBypassPatterns },
       { name: 'Kubernetes', patterns: this.kubernetesPatterns },
       { name: 'Docker', patterns: this.dockerPatterns },
       { name: 'AWS', patterns: this.awsPatterns }
@@ -294,7 +294,7 @@ export class SSRFScanner {
       }
     }
 
-    // 複合行為分析
+    // Compound behavior analysis
     this.analyzeCompoundBehaviors(content, findings);
 
     return findings;
@@ -309,33 +309,33 @@ export class SSRFScanner {
   }
 
   analyzeCompoundBehaviors(content, findings) {
-    // 檢查是否有網路請求工具 + 內部 IP
+    // Check for network tools + internal IP combination
     const hasNetworkTools = /curl|wget|fetch|http\.get|requests\.|axios|WebFetch/gi.test(content);
     const hasInternalIP = /10\.\d|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\./g.test(content);
     const hasMetadata = /169\.254\.169\.254|metadata/gi.test(content);
 
     if (hasNetworkTools && hasMetadata) {
       findings.critical.push({
-        title: '[行為分析] 網路工具 + Metadata 存取',
-        description: 'Skill 包含網路請求工具和雲端 metadata endpoint，高度可疑的 SSRF 攻擊',
+        title: '[Behavior Analysis] Network tools + Metadata access',
+        description: 'Skill contains network request tools and cloud metadata endpoint, highly suspicious SSRF attack',
         scanner: 'SSRFScanner'
       });
     }
 
     if (hasNetworkTools && hasInternalIP) {
       findings.high.push({
-        title: '[行為分析] 網路工具 + 內部 IP',
-        description: 'Skill 包含網路請求工具和內部 IP 位址，可能探測內部網路',
+        title: '[Behavior Analysis] Network tools + Internal IP',
+        description: 'Skill contains network request tools and internal IP addresses, may probe internal network',
         scanner: 'SSRFScanner'
       });
     }
 
-    // 檢查動態 URL 構造
+    // Check for dynamic URL construction
     const hasDynamicUrl = /\$\{.*\}.*https?:|https?:.*\$\{|url\s*=.*\+|fetch\s*\([^)]*\+/gi.test(content);
     if (hasDynamicUrl) {
       findings.medium.push({
-        title: '[行為分析] 動態 URL 構造',
-        description: '偵測到動態構造 URL 的模式，可能允許 SSRF 注入',
+        title: '[Behavior Analysis] Dynamic URL construction',
+        description: 'Detected dynamic URL construction pattern, may allow SSRF injection',
         scanner: 'SSRFScanner'
       });
     }

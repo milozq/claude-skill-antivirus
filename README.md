@@ -1,270 +1,353 @@
-# Claude Skill Antivirus 🔧🛡️
+# Claude Skill Antivirus
 
-一個安全的 Claude Skills 安裝器，內建完整的惡意行為偵測引擎。
+A security scanner and safe installer for Claude Code Skills. Detects malicious patterns, data exfiltration attempts, and dangerous operations before installing third-party skills.
 
-**Skills Installer + Antivirus for Claude**
+[繁體中文說明](./README.zh-TW.md) | [SkillsMP Scan Report](./SCAN-REPORT.md)
 
-## 功能特色
+## SkillsMP Platform Scan Results
 
-- **🛡️ 九大掃描引擎**: 全方位偵測惡意 Skills
-- **⚠️ 風險評估**: 將發現分類為 Critical、High、Medium、Low、Info
-- **📊 視覺化報告**: 彩色安全報告與分數
-- **🚫 自動阻擋**: 預設阻擋 CRITICAL 風險的 Skills
-- **🌐 支援多來源**: SkillsMP、GitHub、本機檔案
+We scanned all **71,577 skills** on SkillsMP:
 
-## 掃描引擎
+| Risk Level | Count | Percentage |
+|------------|-------|------------|
+| CRITICAL | 91 | 0.13% |
+| HIGH | 626 | 0.87% |
+| MEDIUM | 1,310 | 1.83% |
+| SAFE | **69,505** | **97.11%** |
 
-### 1. 危險指令偵測 (DangerousCommandScanner)
-偵測可能造成系統損害的指令：
+**~3% of skills may have potential risks.** See [full report](./SCAN-REPORT.md) for details.
 
-| 風險等級 | 偵測項目 |
-|----------|----------|
-| Critical | `rm -rf /`、`curl \| bash`、fork bomb |
-| High | 讀取 `/etc/shadow`、reverse shell、憑證竊取 |
-| Medium | `rm -rf`、權限變更、服務控制 |
-| Low | `sudo`、全域安裝 |
+> **Note**: Some findings may be false positives (e.g., legitimate 1Password/Bitwarden integrations). Manual review is recommended for flagged skills.
 
-### 2. 權限範圍檢查 (PermissionScanner)
-分析 `allowed-tools` 宣告：
+## Features
 
-- **Critical**: `Bash(*)` - 無限制 shell 存取
-- **High**: `Write`、`WebFetch`、廣泛的 bash 權限
-- **Medium**: `Read`、`Glob`、`Grep`、版本控制工具
-- **危險組合偵測**: 例如 `Read + WebFetch` = 資料外洩風險
+- **9 Security Scanning Engines**:
+  - Dangerous Commands Scanner - Detects destructive shell commands
+  - Data Exfiltration Scanner - Identifies data theft patterns
+  - External Connections Scanner - Analyzes URLs and network calls
+  - Permission Scanner - Reviews tool permissions and access scope
+  - Pattern Scanner - Detects prompt injection and sensitive data
+  - MCP Security Scanner - Validates MCP server configurations
+  - SSRF Scanner - Identifies server-side request forgery patterns
+  - Dependency Scanner - Detects malicious packages and typosquatting
+  - Sub-agent Scanner - Detects Task tool abuse and agent chain attacks
 
-### 3. 外部連線分析 (ExternalConnectionScanner)
-識別可疑的網路活動：
+- **Risk Assessment**: Critical, High, Medium, Low, and Info levels
+- **Multilingual Support**: English and Traditional Chinese (繁體中文)
+- **Install or Scan-Only Mode**: Review skills before installation
+- **Interactive Prompts**: Guided decision-making for risky installations
 
-- IP 直連 URL
-- Webhook/資料擷取服務
-- 可疑 TLD (.tk、.ml 等)
-- Discord/Telegram webhook
-- URL 縮短服務
-
-### 4. 模式匹配 (PatternScanner)
-偵測：
-
-- Prompt injection 攻擊
-- 硬編碼的憑證/API 金鑰
-- 混淆程式碼 (base64、hex 編碼)
-- 社交工程語言
-
-### 5. 資料外洩偵測 (DataExfiltrationScanner)
-**專門偵測讀取本機資料並傳送到外部的惡意行為**：
-
-| 類別 | 偵測項目 |
-|------|----------|
-| 資料收集 | 讀取 `.ssh`、`.aws`、`.env`、瀏覽器密碼、密碼管理器 |
-| 資料外洩 | `curl -d`、`nc` 傳送、DNS tunneling、郵件外洩 |
-| 組合攻擊 | `cat \| base64 \| curl`、`tar \| nc`、`find -exec curl` |
-| 環境變數竊取 | `env \| curl`、`printenv` 外洩 |
-| 系統偵察 | `whoami`、`hostname`、網路設定外洩 |
-| 持久化機制 | 修改 `.bashrc`、cron 定時外洩 |
-
-### 6. 🆕 MCP Server 安全檢查 (MCPSecurityScanner)
-**偵測 MCP Server 設定中的安全風險**：
-
-| 類別 | 偵測項目 |
-|------|----------|
-| 不受信任來源 | 非官方 MCP server、從 URL 直接執行 |
-| 危險權限 | Filesystem 無限制存取、Shell 執行、資料庫存取 |
-| 敏感設定 | 環境變數含憑證、設定檔暴露 |
-| 危險組合 | Filesystem + Fetch、Shell + 網路 |
-
-### 7. 🆕 SSRF/雲端攻擊偵測 (SSRFScanner)
-**偵測 Server-Side Request Forgery 和雲端攻擊**：
-
-| 類別 | 偵測項目 |
-|------|----------|
-| 雲端 Metadata | AWS/GCP/Azure 169.254.169.254、IAM 憑證竊取 |
-| 內部網路 | 10.x.x.x、192.168.x.x、172.16-31.x.x 探測 |
-| SSRF 繞過 | Hex IP、URL 編碼、file://、gopher:// |
-| Kubernetes | API 存取、secrets 竊取、serviceaccount |
-| Docker | docker.sock 存取、特權容器、容器逃逸 |
-
-### 8. 🆕 依賴安全檢查 (DependencyScanner)
-**偵測惡意或有漏洞的依賴套件**：
-
-| 類別 | 偵測項目 |
-|------|----------|
-| 已知惡意套件 | event-stream、ua-parser-js、colors、faker |
-| Typosquatting | crossenv、lodash-、mongose、reqeusts |
-| 可疑安裝 | 從 URL 安裝、不安全 registry、HTTP index |
-| postinstall 風險 | install 腳本含 curl、wget、eval |
-
-### 9. 🆕 Sub-agent 攻擊偵測 (SubAgentScanner)
-**偵測 Task 工具和 Sub-agent 的濫用**：
-
-| 類別 | 偵測項目 |
-|------|----------|
-| 權限升級 | Task 派生 Bash agent、要求所有權限 |
-| Prompt Injection | Sub-agent prompt 含惡意指令 |
-| Agent 鏈攻擊 | 嵌套 Task 呼叫、遞迴 agent |
-| DoS 攻擊 | 迴圈呼叫 Task、無限遞迴 |
-| 資料竊取 | Read + WebFetch 組合、存取敏感資料 |
-
-## 安裝
+## Installation
 
 ```bash
-cd claude-skill-antivirus
-npm install
-npm link  # 全域安裝 'skill-install' 和 'claude-skill-av' 指令
+npm install -g claude-skill-antivirus
 ```
 
-## 使用方式
-
-### 基本用法
+Or run directly with npx:
 
 ```bash
-# 從 SkillsMP 安裝
-skill-install https://skillsmp.com/skills/your-skill
-
-# 從本機檔案安裝
-skill-install ./path/to/SKILL.md
-
-# 從目錄安裝
-skill-install ./path/to/skill-directory/
-
-# 從 GitHub 安裝
-skill-install https://github.com/user/repo/blob/main/skills/SKILL.md
+npx claude-skill-antivirus <skill-source>
 ```
 
-### 選項
+## Usage
+
+### Install a skill with security scanning
 
 ```bash
-skill-install <source> [options]
+# Install to project level (./.claude/skills/) - default
+skill-install ./path/to/skill
+skill-install https://github.com/user/skill-repo
 
-選項:
-  -o, --output <path>    安裝目錄 (預設: "./skills")
-  -f, --force            跳過安全確認提示
-  -v, --verbose          顯示詳細掃描結果
-  --scan-only            只掃描不安裝
-  --allow-high-risk      允許安裝高風險 skills (不建議)
-  -h, --help             顯示說明
+# Install to user level (~/.claude/skills/)
+skill-install ./path/to/skill --global
+skill-install @skillsmp/example-skill -g
 ```
 
-### 範例
+**Installation paths:**
+- Project level (default): `./.claude/skills/`
+- User level (`--global`): `~/.claude/skills/`
+
+### Scan only (without installing)
 
 ```bash
-# 只掃描 (不安裝)
-skill-install ./my-skill --scan-only
-
-# 詳細輸出
-skill-install ./my-skill -v
-
-# 自訂輸出目錄
-skill-install ./my-skill -o ~/.claude/skills
-
-# 強制安裝 (跳過提示)
-skill-install ./my-skill -f
-
-# 掃描 SkillsMP 上的 skill
-skill-install https://skillsmp.com/skills/example-skill --scan-only
+skill-install ./path/to/skill --scan-only
 ```
 
-## 風險等級
+### Change language
 
-| 等級 | 分數影響 | 動作 |
-|------|----------|------|
-| CRITICAL | -30/項 | 阻止安裝 |
-| HIGH | -20/項 | 需明確確認 |
-| MEDIUM | -10/項 | 顯示警告 |
-| LOW | -5/項 | 詳細模式顯示 |
-| INFO | 0 | 總是顯示 |
+```bash
+# English (default)
+skill-install ./path/to/skill --lang en
 
-## 輸出範例
+# Traditional Chinese
+skill-install ./path/to/skill --lang zh-TW
+```
+
+### Alternative command
+
+```bash
+claude-skill-av ./path/to/skill --scan-only
+```
+
+### Batch scan all SkillsMP skills
+
+```bash
+# Scan all skills from SkillsMP (requires API key)
+skill-batch-scan --api-key <your-api-key>
+
+# Scan with options
+skill-batch-scan --api-key <key> --max-pages 10 --verbose
+skill-batch-scan --api-key <key> --output ./my-reports --lang zh-TW
+```
+
+Options:
+- `-k, --api-key <key>` - SkillsMP API key (required)
+- `-l, --limit <number>` - Skills per page (default: 100)
+- `-p, --max-pages <number>` - Maximum pages to scan (default: all)
+- `-o, --output <dir>` - Output directory for reports (default: ./scan-reports)
+- `-v, --verbose` - Show verbose output
+- `--lang <lang>` - Language (en, zh-TW)
+
+## Scanning Engines
+
+### 1. Dangerous Commands Scanner
+
+Detects commands that can cause system damage:
+
+| Risk Level | Detection Items |
+|------------|-----------------|
+| Critical | `rm -rf /`, `curl \| bash`, fork bombs |
+| High | Reading `/etc/shadow`, reverse shells, credential theft |
+| Medium | `rm -rf`, permission changes, service control |
+| Low | `sudo`, global package installs |
+
+### 2. Permission Scanner
+
+Analyzes `allowed-tools` declarations:
+
+- **Critical**: `Bash(*)` - Unrestricted shell access
+- **High**: `Write`, `WebFetch`, broad bash permissions
+- **Medium**: `Read`, `Glob`, `Grep`, version control tools
+- **Dangerous Combinations**: e.g., `Read + WebFetch` = data exfiltration risk
+
+### 3. External Connections Scanner
+
+Identifies suspicious network activity:
+
+- Direct IP URLs
+- Webhook/data capture services
+- Suspicious TLDs (.tk, .ml, etc.)
+- Discord/Telegram webhooks
+- URL shortening services
+
+### 4. Pattern Scanner
+
+Detects:
+
+- Prompt injection attacks
+- Hardcoded credentials/API keys
+- Obfuscated code (base64, hex encoding)
+- Social engineering language
+
+### 5. Data Exfiltration Scanner
+
+Specifically detects malicious behavior of reading local data and sending it externally:
+
+| Category | Detection Items |
+|----------|-----------------|
+| Data Collection | Reading `.ssh`, `.aws`, `.env`, browser passwords, password managers |
+| Data Exfiltration | `curl -d`, netcat transfers, DNS tunneling, email exfiltration |
+| Combined Attacks | `cat \| base64 \| curl`, `tar \| nc`, `find -exec curl` |
+| Env Variable Theft | `env \| curl`, `printenv` exfiltration |
+| System Recon | `whoami`, `hostname`, network config exfiltration |
+| Persistence | Modifying `.bashrc`, scheduled cron exfiltration |
+
+### 6. MCP Security Scanner
+
+Detects security risks in MCP Server configurations:
+
+| Category | Detection Items |
+|----------|-----------------|
+| Untrusted Sources | Non-official MCP servers, direct URL execution |
+| Dangerous Permissions | Unrestricted filesystem access, shell execution, database access |
+| Sensitive Config | Environment variables with credentials, exposed config |
+| Dangerous Combinations | Filesystem + Fetch, Shell + Network |
+
+### 7. SSRF Scanner
+
+Detects Server-Side Request Forgery and cloud attacks:
+
+| Category | Detection Items |
+|----------|-----------------|
+| Cloud Metadata | AWS/GCP/Azure 169.254.169.254, IAM credential theft |
+| Internal Network | 10.x.x.x, 192.168.x.x, 172.16-31.x.x probing |
+| SSRF Bypass | Hex IP, URL encoding, file://, gopher:// |
+| Kubernetes | API access, secrets theft, serviceaccount |
+| Docker | docker.sock access, privileged containers, container escape |
+
+### 8. Dependency Scanner
+
+Detects malicious or vulnerable dependencies:
+
+| Category | Detection Items |
+|----------|-----------------|
+| Known Malicious | event-stream, ua-parser-js, colors, faker |
+| Typosquatting | crossenv, lodash-, mongose, reqeusts |
+| Suspicious Install | URL installs, insecure registry, HTTP index |
+| postinstall Risks | Install scripts with curl, wget, eval |
+
+### 9. Sub-agent Scanner
+
+Detects Task tool and sub-agent abuse:
+
+| Category | Detection Items |
+|----------|-----------------|
+| Privilege Escalation | Task spawning Bash agent, requesting all permissions |
+| Prompt Injection | Sub-agent prompts with malicious commands |
+| Agent Chain Attacks | Nested Task calls, recursive agents |
+| DoS Attacks | Loop Task calls, infinite recursion |
+| Data Theft | Read + WebFetch combinations, accessing sensitive data |
+
+## Output Examples
+
+### Safe Skill
 
 ```
-🔧 Claude Skill Installer v1.0.0
+🔧 Claude Skill Installer v2.0.0
 
-✓ Skill loaded: super-helper
+📦 Skill loaded: example-safe-skill
 
-📋 Starting security scan...
+🔍 Starting security scan...
 
-═══════════════════════════════════════════════════════
-                    SECURITY SCAN REPORT
-═══════════════════════════════════════════════════════
+===========================================
+     SECURITY SCAN REPORT
+===========================================
+Risk Level: ✅ SAFE
 
-Risk Level: CRITICAL
-Score: 0/100 ░░░░░░░░░░
+📊 Findings Summary:
+  🟢 CRITICAL: 0
+  🟢 HIGH:     0
+  🟢 MEDIUM:   0
+  🟢 LOW:      0
+  ℹ️  INFO:     2
 
-Findings Summary:
-  Critical: 35
-  High: 28
-  Medium: 12
-  Low: 8
-  Info: 5
+✅ Recommendation: Safe to install
+```
 
-🚨 CRITICAL ISSUES:
-  • [雲端 Metadata] AWS/GCP Metadata Endpoint
-    嘗試存取雲端 metadata endpoint，可竊取 IAM 憑證
-  • [MCP] MCP 從 URL 直接執行
-    直接從 URL 執行 npx，極度危險
-  • [依賴] 已知惡意套件
-    偵測到已知問題套件: event-stream
-  • [Sub-agent] Task Prompt Injection
-    Sub-agent prompt 包含 prompt injection 嘗試
+### Malicious Skill Detected
+
+```
+🔧 Claude Skill Installer v2.0.0
+
+📦 Skill loaded: suspicious-skill
+
+🔍 Starting security scan...
+
+===========================================
+     SECURITY SCAN REPORT
+===========================================
+Risk Level: ☠️ CRITICAL
+
+📊 Findings Summary:
+  🔴 CRITICAL: 5
+  🟠 HIGH:     3
+  🟡 MEDIUM:   2
+  🟢 LOW:      1
+  ℹ️  INFO:     4
+
+🔴 CRITICAL Findings:
+  • [Data Collection] Reading sensitive credential files
+    Attempts to read environment variables, private keys or credential files
+  • [Data Exfiltration] curl sending command output
+    Using curl to send command execution results to external server
   ...
 
-═══════════════════════════════════════════════════════
-
-❌ Installation blocked due to CRITICAL security risks.
+❌ Recommendation: DO NOT INSTALL - Contains critical security risks
 ```
 
-## 開發
+## Risk Levels
 
-```bash
-# 執行測試
-npm test
+| Level | Score Impact | Action |
+|-------|--------------|--------|
+| CRITICAL | -30/item | Block installation |
+| HIGH | -20/item | Require explicit confirmation |
+| MEDIUM | -10/item | Show warning |
+| LOW | -5/item | Show in verbose mode |
+| INFO | 0 | Always show |
 
-# 測試安全範例
-node src/index.js ./examples/safe-skill --scan-only
+## API
 
-# 測試惡意範例（所有 9 個引擎）
-node src/index.js ./examples/malicious-skill --scan-only -v
+You can also use the scanner programmatically:
+
+```javascript
+import { SecurityScanner, loadSkill } from 'claude-skill-antivirus';
+
+const scanner = new SecurityScanner();
+const skill = await loadSkill('./path/to/skill');
+const findings = await scanner.scan(skill);
+
+console.log(findings);
+// {
+//   critical: [...],
+//   high: [...],
+//   medium: [...],
+//   low: [...],
+//   info: [...]
+// }
 ```
 
-## 專案結構
+## Project Structure
 
 ```
 claude-skill-antivirus/
 ├── src/
-│   ├── index.js                   # CLI 入口
+│   ├── index.js                   # CLI entry point
+│   ├── i18n/                      # Internationalization
+│   │   ├── index.js
+│   │   ├── en.js                  # English translations
+│   │   └── zh-TW.js               # Traditional Chinese translations
 │   ├── scanner/
-│   │   ├── index.js               # 主掃描器（整合 9 個引擎）
-│   │   ├── dangerous-commands.js  # 危險指令偵測
-│   │   ├── permissions.js         # 權限檢查
-│   │   ├── external-connections.js # 外部連線分析
-│   │   ├── patterns.js            # 模式匹配
-│   │   ├── data-exfiltration.js   # 資料外洩偵測
-│   │   ├── mcp-security.js        # MCP Server 安全檢查 (NEW!)
-│   │   ├── ssrf-scanner.js        # SSRF/雲端攻擊偵測 (NEW!)
-│   │   ├── dependency-scanner.js  # 依賴安全檢查 (NEW!)
-│   │   └── subagent-scanner.js    # Sub-agent 攻擊偵測 (NEW!)
+│   │   ├── index.js               # Main scanner (integrates 9 engines)
+│   │   ├── dangerous-commands.js  # Dangerous command detection
+│   │   ├── permissions.js         # Permission checking
+│   │   ├── external-connections.js # External connection analysis
+│   │   ├── patterns.js            # Pattern matching
+│   │   ├── data-exfiltration.js   # Data exfiltration detection
+│   │   ├── mcp-security.js        # MCP Server security check
+│   │   ├── ssrf-scanner.js        # SSRF/cloud attack detection
+│   │   ├── dependency-scanner.js  # Dependency security check
+│   │   └── subagent-scanner.js    # Sub-agent attack detection
 │   └── utils/
-│       ├── downloader.js          # Skill 下載器
-│       └── installer.js           # Skill 安裝器
+│       ├── downloader.js          # Skill downloader
+│       └── installer.js           # Skill installer
 ├── examples/
-│   ├── safe-skill/                # 安全範例
-│   └── malicious-skill/           # 惡意範例（測試所有引擎）
+│   ├── safe-skill/                # Safe example
+│   └── malicious-skill/           # Malicious example (tests all engines)
 ├── package.json
 └── README.md
 ```
 
-## 掃描引擎對照表
+## Contributing
 
-| # | 引擎 | 偵測重點 |
-|---|------|----------|
-| 1 | DangerousCommandScanner | rm -rf、curl\|bash、fork bomb |
-| 2 | PermissionScanner | allowed-tools 分析 |
-| 3 | ExternalConnectionScanner | 可疑 URL、webhook |
-| 4 | PatternScanner | Prompt injection、API keys |
-| 5 | DataExfiltrationScanner | 資料外洩工具鏈 |
-| 6 | MCPSecurityScanner | MCP server 設定安全 |
-| 7 | SSRFScanner | 雲端 metadata、內部網路 |
-| 8 | DependencyScanner | 惡意套件、typosquatting |
-| 9 | SubAgentScanner | Task 濫用、agent 鏈攻擊 |
+Contributions are welcome! Please feel free to submit issues and pull requests.
+
+### Adding New Detection Patterns
+
+Each scanner is modular. To add new patterns:
+
+1. Find the appropriate scanner in `src/scanner/`
+2. Add your pattern to the relevant array
+3. Include: `pattern`, `risk`, `title`, `description`
 
 ## License
 
 MIT
+
+## Author
+
+Lucas Wang <support@claude-world.com>
+
+## Links
+
+- [GitHub Repository](https://github.com/claude-world/claude-skill-antivirus)
+- [Report Issues](https://github.com/claude-world/claude-skill-antivirus/issues)

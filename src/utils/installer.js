@@ -1,12 +1,28 @@
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
+import os from 'os';
 
 /**
  * SkillInstaller - Handles the actual installation of skills
+ *
+ * Installation paths:
+ * - User level (--global): ~/.claude/skills/
+ * - Project level (default): ./.claude/skills/
  */
 export class SkillInstaller {
-  constructor(outputDir = './skills') {
-    this.outputDir = outputDir;
+  constructor(options = {}) {
+    this.global = options.global || false;
+    this.outputDir = this.getOutputDir();
+  }
+
+  getOutputDir() {
+    if (this.global) {
+      // User level: ~/.claude/skills/
+      return path.join(os.homedir(), '.claude', 'skills');
+    } else {
+      // Project level: ./.claude/skills/
+      return path.join(process.cwd(), '.claude', 'skills');
+    }
   }
 
   /**
