@@ -5,9 +5,9 @@
   "main": "src/index.js",
   "type": "module",
   "bin": {
-    "skill-install": "./src/index.js",
-    "claude-skill-av": "./src/index.js",
-    "skill-batch-scan": "./src/batch-scanner.js"
+    "skill-install": "src/index.js",
+    "claude-skill-av": "src/index.js",
+    "skill-batch-scan": "src/batch-scanner.js"
   },
   "scripts": {
     "start": "node src/index.js",

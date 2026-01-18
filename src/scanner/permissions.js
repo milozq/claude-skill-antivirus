@@ -173,10 +173,29 @@ export class PermissionScanner {
   }
 
   parseToolString(toolStr) {
-    return toolStr
-      .split(/[,;]/)
-      .map(t => t.trim())
-      .filter(t => t.length > 0);
+    // Handle undefined/null
+    if (!toolStr) {
+      return [];
+    }
+
+    // Handle array format (YAML list)
+    if (Array.isArray(toolStr)) {
+      return toolStr
+        .flatMap(t => typeof t === 'string' ? t.split(/[,;]/) : [])
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+    }
+
+    // Handle string format
+    if (typeof toolStr === 'string') {
+      return toolStr
+        .split(/[,;]/)
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+    }
+
+    // Unknown format, return empty
+    return [];
   }
 
   analyzeToolRisk(tool, findings) {
