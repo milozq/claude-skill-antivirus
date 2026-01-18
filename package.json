@@ -1,0 +1,56 @@
+{
+  "name": "claude-skill-antivirus",
+  "version": "1.0.0",
+  "description": "A secure Claude Skills installer with comprehensive malicious operation detection - Skills 安裝器 + 防毒軟體",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "skill-install": "./src/index.js",
+    "claude-skill-av": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node src/index.js ./examples/safe-skill --scan-only && node src/index.js ./examples/malicious-skill --scan-only"
+  },
+  "keywords": [
+    "claude",
+    "skills",
+    "installer",
+    "security",
+    "antivirus",
+    "malware-detection",
+    "ai-safety",
+    "prompt-injection",
+    "data-exfiltration",
+    "claude-code",
+    "anthropic"
+  ],
+  "author": "Lucas <cp7777.tw@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "src/**/*",
+    "examples/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "ora": "^8.0.1",
+    "inquirer": "^9.2.12",
+    "node-fetch": "^3.3.2",
+    "yaml": "^2.3.4",
+    "adm-zip": "^0.5.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gn00295120/claude-skill-antivirus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gn00295120/claude-skill-antivirus/issues"
+  },
+  "homepage": "https://github.com/gn00295120/claude-skill-antivirus#readme"
+}
